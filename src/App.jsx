@@ -11,6 +11,7 @@ import RuleCard from './components/RuleCard';
 import TurnCounter from './components/TurnCounter';
 import GameStatus from './components/GameStatus';
 import NewRulePopup from './components/NewRulePopup';
+import { getActiveRulesInfo } from './game/RulesEngine';
 
 /**
  * The main board component receives boardgame.io props
@@ -55,7 +56,7 @@ function ChaosChessBoard({ G, ctx, moves }) {
             turnsUntilNextRule={G.rulesEngine?.turnsUntilNextRule ?? 5}
             currentPlayer={G.currentPlayer}
           />
-          <RuleCard activeRules={G.rulesEngine?.activeRules || []} />
+          <RuleCard activeRules={getActiveRulesInfo(G.rulesEngine)} />
         </div>
 
         {/* Board */}

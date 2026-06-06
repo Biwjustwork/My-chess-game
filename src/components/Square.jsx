@@ -17,15 +17,18 @@ export default function Square({
 }) {
   const square = String.fromCharCode(97 + col) + (8 - row);
 
-  const [{ isOver }, dropRef] = useDrop({
-    accept: 'PIECE',
-    drop: (item) => {
-      if (onDrop) onDrop(item.square, square);
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
+  const [{ isOver }, dropRef] = useDrop(
+    () => ({
+      accept: 'PIECE',
+      drop: (item) => {
+        if (onDrop) onDrop(item.square, square);
+      },
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+      }),
     }),
-  });
+    [onDrop, square]
+  );
 
   const isLight = (row + col) % 2 === 0;
   const hasCapture = isValidMove && piece;

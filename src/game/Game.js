@@ -15,6 +15,7 @@ import {
   getExtraMovesFromRules,
   applyPostMoveEffects,
   isValidTeleportation,
+  getExplosionSquares,
   TURNS_PER_RULE_CHANGE,
 } from './RulesEngine';
 
@@ -189,11 +190,7 @@ const ChaosChess = {
 
       // Handle explosive captures visual feedback
       if (G.rulesEngine.activeModifiers.explosiveCaptures && moveResult.captured) {
-        const explosiveRule = G.rulesEngine.activeRules.find((r) => r.id === 'explosive_captures');
-        if (explosiveRule) {
-          G.explosionSquares = explosiveRule.getExplosionSquares(to);
-          // Clear after a short delay (will be handled by UI)
-        }
+        G.explosionSquares = getExplosionSquares(to);
       } else {
         G.explosionSquares = [];
       }
@@ -242,9 +239,9 @@ const ChaosChess = {
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        G.rulesEngine = drawNewRule(G.rulesEngine);
-        const latestRule = G.rulesEngine.activeRules[G.rulesEngine.activeRules.length - 1];
-        G.newRuleDrawn = latestRule;
+        const { updatedState, newRuleInfo } = drawNewRule(G.rulesEngine);
+        G.rulesEngine = updatedState;
+        G.newRuleDrawn = newRuleInfo;
       }
 
       // End turn
@@ -303,9 +300,9 @@ const ChaosChess = {
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        G.rulesEngine = drawNewRule(G.rulesEngine);
-        const latestRule = G.rulesEngine.activeRules[G.rulesEngine.activeRules.length - 1];
-        G.newRuleDrawn = latestRule;
+        const { updatedState, newRuleInfo } = drawNewRule(G.rulesEngine);
+        G.rulesEngine = updatedState;
+        G.newRuleDrawn = newRuleInfo;
       }
 
       if (G.gameStatus === 'checkmate' || G.gameStatus === 'draw' || G.gameStatus === 'stalemate') {
@@ -343,9 +340,9 @@ const ChaosChess = {
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        G.rulesEngine = drawNewRule(G.rulesEngine);
-        const latestRule = G.rulesEngine.activeRules[G.rulesEngine.activeRules.length - 1];
-        G.newRuleDrawn = latestRule;
+        const { updatedState, newRuleInfo } = drawNewRule(G.rulesEngine);
+        G.rulesEngine = updatedState;
+        G.newRuleDrawn = newRuleInfo;
       }
 
       events.endTurn();

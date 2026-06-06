@@ -251,8 +251,11 @@ body {
 
 /* ===== Piece ===== */
 .piece {
-  font-size: 2.8rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   cursor: grab;
   user-select: none;
   filter: drop-shadow(1px 2px 3px rgba(0,0,0,0.4));
@@ -261,23 +264,20 @@ body {
 }
 
 .piece:hover {
-  transform: scale(1.1);
-  filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.6));
+  transform: scale(1.08);
+  filter: drop-shadow(2px 4px 8px rgba(0,0,0,0.6));
 }
 
-.piece-white {
-  color: #fff;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.8);
-}
-
-.piece-black {
-  color: #1a1a2e;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+.piece-img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .piece-dragging {
   opacity: 0.5;
-  transform: scale(1.2);
+  transform: scale(1.15);
 }
 
 /* ===== Turn Counter ===== */
@@ -658,7 +658,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
   border-radius: 12px;
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--glass-border);
@@ -767,9 +766,6 @@ body {
     width: 50px;
     height: 50px;
   }
-  .piece {
-    font-size: 2rem;
-  }
   .app-title {
     font-size: 1.75rem;
   }
@@ -779,8 +775,5 @@ body {
   .square {
     width: 40px;
     height: 40px;
-  }
-  .piece {
-    font-size: 1.6rem;
   }
 }

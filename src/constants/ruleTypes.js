@@ -1,0 +1,6 @@
+export const RULE_TYPES = {
+  MOVEMENT: 'MOVEMENT',
+  CAPTURE: 'CAPTURE',
+  SPECIAL: 'SPECIAL',
+  BOARD: 'BOARD',
+};

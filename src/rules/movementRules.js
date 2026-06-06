@@ -1,17 +1,6 @@
-/**
- * rulePool.js
- * A dictionary of all possible randomized special rules for Chaos Chess.
- * Each rule defines its metadata and how it modifies standard chess behavior.
- */
+import { RULE_TYPES } from '../constants/ruleTypes';
 
-const RULE_TYPES = {
-  MOVEMENT: 'MOVEMENT',
-  CAPTURE: 'CAPTURE',
-  SPECIAL: 'SPECIAL',
-  BOARD: 'BOARD',
-};
-
-const rulePool = [
+export const movementRules = [
   {
     id: 'reverse_pawns',
     name: 'Reverse Pawns',
@@ -52,38 +41,6 @@ const rulePool = [
     },
   },
   {
-    id: 'explosive_captures',
-    name: 'Explosive Captures',
-    description: 'When a piece is captured, all pieces on adjacent squares (3×3 grid) are also removed — except Kings!',
-    type: RULE_TYPES.CAPTURE,
-    icon: '💥',
-    affectedPieces: ['all'],
-    apply: (gameState) => {
-      return { ...gameState, activeModifiers: { ...gameState.activeModifiers, explosiveCaptures: true } };
-    },
-    revert: (gameState) => {
-      const { explosiveCaptures, ...rest } = gameState.activeModifiers;
-      return { ...gameState, activeModifiers: rest };
-    },
-    // Returns adjacent squares in 3x3 grid
-    getExplosionSquares: (square) => {
-      const file = square.charCodeAt(0);
-      const rank = parseInt(square[1]);
-      const squares = [];
-      for (let f = file - 1; f <= file + 1; f++) {
-        for (let r = rank - 1; r <= rank + 1; r++) {
-          if (f >= 97 && f <= 104 && r >= 1 && r <= 8) {
-            const sq = String.fromCharCode(f) + r;
-            if (sq !== square) {
-              squares.push(sq);
-            }
-          }
-        }
-      }
-      return squares;
-    },
-  },
-  {
     id: 'knights_frenzy',
     name: "Knight's Frenzy",
     description: 'Knights can move TWICE in a single turn! After moving a Knight, you may move it again.',
@@ -96,33 +53,6 @@ const rulePool = [
     revert: (gameState) => {
       const { knightsFrenzy, ...rest } = gameState.activeModifiers;
       return { ...gameState, activeModifiers: rest };
-    },
-  },
-  {
-    id: 'teleportation',
-    name: 'Teleportation',
-    description: 'Instead of moving normally, a player can teleport one of their pieces to ANY empty square (costs a turn).',
-    type: RULE_TYPES.SPECIAL,
-    icon: '✨',
-    affectedPieces: ['all'],
-    apply: (gameState) => {
-      return { ...gameState, activeModifiers: { ...gameState.activeModifiers, teleportation: true } };
-    },
-    revert: (gameState) => {
-      const { teleportation, ...rest } = gameState.activeModifiers;
-      return { ...gameState, activeModifiers: rest };
-    },
-    getEmptySquares: (board) => {
-      const emptySquares = [];
-      for (let file = 0; file < 8; file++) {
-        for (let rank = 1; rank <= 8; rank++) {
-          const square = String.fromCharCode(97 + file) + rank;
-          if (!board.get(square)) {
-            emptySquares.push(square);
-          }
-        }
-      }
-      return emptySquares;
     },
   },
   {
@@ -160,21 +90,6 @@ const rulePool = [
         }
       }
       return extraMoves;
-    },
-  },
-  {
-    id: 'shield_wall',
-    name: 'Shield Wall',
-    description: 'Pawns become invincible — they cannot be captured this phase!',
-    type: RULE_TYPES.CAPTURE,
-    icon: '🛡️',
-    affectedPieces: ['p'],
-    apply: (gameState) => {
-      return { ...gameState, activeModifiers: { ...gameState.activeModifiers, shieldWall: true } };
-    },
-    revert: (gameState) => {
-      const { shieldWall, ...rest } = gameState.activeModifiers;
-      return { ...gameState, activeModifiers: rest };
     },
   },
   {
@@ -227,20 +142,3 @@ const rulePool = [
     },
   },
 ];
-
-/**
- * Get a random rule from the pool, optionally excluding already active rule IDs
- * @param {string[]} excludeIds - IDs of rules already active
- * @returns {object} A random rule object
- */
-export function getRandomRule(excludeIds = []) {
-  const available = rulePool.filter((r) => !excludeIds.includes(r.id));
-  if (available.length === 0) {
-    // If all rules have been used, allow repeats
-    return rulePool[Math.floor(Math.random() * rulePool.length)];
-  }
-  return available[Math.floor(Math.random() * available.length)];
-}
-
-export { RULE_TYPES };
-export default rulePool;

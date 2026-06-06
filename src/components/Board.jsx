@@ -3,10 +3,20 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Chess } from 'chess.js';
 import Square from './Square';
+import { getAllValidMoves } from '../game/Game';
 
-const PIECE_SYMBOLS = {
-  wq: '♕', wr: '♖', wb: '♗', wn: '♘',
-  bq: '♛', br: '♜', bb: '♝', bn: '♞',
+import WQueen from '../Img-chess/W-Queen.png';
+import WRook from '../Img-chess/W-Rook.png';
+import WBishop from '../Img-chess/W-Bishop.png';
+import WKnight from '../Img-chess/W-Knight.png';
+import BQueen from '../Img-chess/B-Queen.png';
+import BRook from '../Img-chess/B-Rook.png';
+import BBishop from '../Img-chess/B-Bishop.png';
+import BKnight from '../Img-chess/B-Knight.png';
+
+const PROMOTION_IMAGES = {
+  wq: WQueen, wr: WRook, wb: WBishop, wn: WKnight,
+  bq: BQueen, br: BRook, bb: BBishop, bn: BKnight,
 };
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -25,46 +35,12 @@ export default function Board({ G, moves }) {
 
   // Compute valid moves for a given square
   const computeValidMoves = useCallback((square) => {
-    const tempChess = new Chess(G.fen);
-    const piece = tempChess.get(square);
-    if (!piece || piece.color !== currentColor) return [];
-
-    // Get standard legal moves
-    const standardMoves = tempChess.moves({ square, verbose: true });
-
-    // Get extra moves from rules
-    const extraMoves = [];
-    if (G.rulesEngine && G.rulesEngine.activeRules) {
-      for (const rule of G.rulesEngine.activeRules) {
-        if (rule.getExtraMoves) {
-          // Check if this rule's modifier is active
-          const testState = rule.apply({ activeModifiers: {} });
-          const modKey = Object.keys(testState.activeModifiers)[0];
-          if (G.rulesEngine.activeModifiers && G.rulesEngine.activeModifiers[modKey]) {
-            const moves = rule.getExtraMoves(square, piece, tempChess);
-            extraMoves.push(...moves);
-          }
-        }
-      }
-    }
-
-    // Filter moves blocked by Shield Wall
-    const allMoves = [
-      ...standardMoves.map((m) => ({ from: m.from, to: m.to })),
-      ...extraMoves,
-    ].filter((m) => {
-      if (G.rulesEngine?.activeModifiers?.shieldWall) {
-        const targetPiece = tempChess.get(m.to);
-        if (targetPiece && targetPiece.type === 'p') return false;
-      }
-      return true;
-    });
-
-    return allMoves;
-  }, [G.fen, currentColor, G.rulesEngine]);
+    return getAllValidMoves(G, square);
+  }, [G]);
 
   const handleSquareClick = useCallback((square) => {
-    const piece = chess.get(square);
+    const clickChess = new Chess(G.fen);
+    const piece = clickChess.get(square);
 
     // Teleport mode
     if (G.rulesEngine?.teleportMode) {
@@ -81,7 +57,7 @@ export default function Board({ G, moves }) {
         for (let r = 0; r < 8; r++) {
           for (let c = 0; c < 8; c++) {
             const sq = String.fromCharCode(97 + c) + (8 - r);
-            if (!chess.get(sq)) emptySquares.push({ from: square, to: sq });
+            if (!clickChess.get(sq)) emptySquares.push({ from: square, to: sq });
           }
         }
         setValidMoves(emptySquares);
@@ -108,7 +84,7 @@ export default function Board({ G, moves }) {
 
     // If a piece is selected and clicking a valid move target
     if (selectedSquare && validMoves.some((m) => m.to === square)) {
-      const movingPiece = chess.get(selectedSquare);
+      const movingPiece = clickChess.get(selectedSquare);
 
       // Check for pawn promotion
       if (movingPiece?.type === 'p') {
@@ -135,10 +111,11 @@ export default function Board({ G, moves }) {
       setSelectedSquare(null);
       setValidMoves([]);
     }
-  }, [selectedSquare, validMoves, chess, currentColor, moves, computeValidMoves, G.rulesEngine]);
+  }, [selectedSquare, validMoves, G.fen, currentColor, moves, computeValidMoves, G.rulesEngine]);
 
   const handleDrop = useCallback((from, to) => {
-    const movingPiece = chess.get(from);
+    const dropChess = new Chess(G.fen);
+    const movingPiece = dropChess.get(from);
     if (!movingPiece || movingPiece.color !== currentColor) return;
 
     // Check for pawn promotion on drop
@@ -159,7 +136,7 @@ export default function Board({ G, moves }) {
     }
     setSelectedSquare(null);
     setValidMoves([]);
-  }, [chess, currentColor, moves, G.rulesEngine]);
+  }, [G.fen, currentColor, moves, G.rulesEngine]);
 
   // Promotion state
   const [promotionData, setPromotionData] = useState(null);
@@ -237,7 +214,12 @@ export default function Board({ G, moves }) {
                 className="promotion-piece"
                 onClick={() => handlePromotion(p)}
               >
-                {PIECE_SYMBOLS[`${currentColor}${p}`]}
+                <img
+                  src={PROMOTION_IMAGES[`${currentColor}${p}`]}
+                  alt={p}
+                  style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+                  draggable={false}
+                />
               </div>
             ))}
           </div>

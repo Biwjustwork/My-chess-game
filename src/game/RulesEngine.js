@@ -1,31 +1,46 @@
 /**
  * RulesEngine.js
  * Logic for generating, applying, and reverting special rules in Chaos Chess.
- * Manages the lifecycle of randomized rules that activate every 5 turns.
+ * 
+ * IMPORTANT: All state stored by this engine MUST be JSON-serializable
+ * because boardgame.io requires it. We only store rule IDs and modifier
+ * flags — never function references.
  */
 
-import { getRandomRule } from './rulePool';
+import rulePool from '../rules/rulePool';
+import { getRandomRule } from '../utils/ruleManager';
 
 const TURNS_PER_RULE_CHANGE = 5;
 
+// Lookup map: rule ID -> rule object (with functions)
+const RULE_MAP = {};
+for (const rule of rulePool) {
+  RULE_MAP[rule.id] = rule;
+}
+
 /**
- * Initialize the rules engine state
+ * Get a rule object by ID from the pool
+ */
+export function getRuleById(id) {
+  return RULE_MAP[id] || null;
+}
+
+/**
+ * Initialize the rules engine state (JSON-serializable only!)
  */
 export function initRulesEngine() {
   return {
-    activeRules: [],        // Array of currently active rule objects
-    ruleHistory: [],        // History of all rules that have been drawn
+    activeRuleIds: [],        // Array of active rule IDs (strings only)
+    ruleHistory: [],          // History: [{ ruleId, drawnAtTurn }]
     turnsUntilNextRule: TURNS_PER_RULE_CHANGE,
-    activeModifiers: {},    // Key-value map of active modifier flags
-    pendingSecondMove: null, // For Knight's Frenzy — tracks if knight has a second move
-    teleportMode: false,     // For Teleportation — whether we're in teleport selection mode
+    activeModifiers: {},      // Key-value map of active modifier flags (booleans)
+    pendingSecondMove: null,  // { piece, square, playerId } or null
+    teleportMode: false,
   };
 }
 
 /**
  * Check if it's time for a new rule to be drawn (every 5 turns)
- * @param {number} turnCount - Current global turn count (increments after each player's move)
- * @returns {boolean}
  */
 export function shouldDrawNewRule(turnCount) {
   return turnCount > 0 && turnCount % TURNS_PER_RULE_CHANGE === 0;
@@ -33,31 +48,51 @@ export function shouldDrawNewRule(turnCount) {
 
 /**
  * Draw a new random rule and add it to the active rules
- * @param {object} rulesState - Current rules engine state
- * @returns {object} Updated rules state with new rule added
+ * Returns { updatedState, newRule } where newRule is the serializable info
  */
 export function drawNewRule(rulesState) {
-  const activeRuleIds = rulesState.activeRules.map((r) => r.id);
-  const newRule = getRandomRule(activeRuleIds);
+  const newRule = getRandomRule(rulesState.activeRuleIds);
+
+  // Compute new modifiers by applying the rule
+  const newModifiers = { ...rulesState.activeModifiers };
+  // Each rule sets a specific modifier key
+  const modifierKeys = {
+    reverse_pawns: 'reversePawns',
+    explosive_captures: 'explosiveCaptures',
+    knights_frenzy: 'knightsFrenzy',
+    teleportation: 'teleportation',
+    fortress_king: 'fortressKing',
+    shield_wall: 'shieldWall',
+    bishop_surge: 'bishopSurge',
+    phantom_rook: 'phantomRook',
+  };
+  const modKey = modifierKeys[newRule.id];
+  if (modKey) {
+    newModifiers[modKey] = true;
+  }
 
   const updatedState = {
     ...rulesState,
-    activeRules: [...rulesState.activeRules, newRule],
-    ruleHistory: [...rulesState.ruleHistory, { rule: newRule, drawnAtTurn: rulesState.turnsUntilNextRule }],
+    activeRuleIds: [...rulesState.activeRuleIds, newRule.id],
+    ruleHistory: [...rulesState.ruleHistory, { ruleId: newRule.id, drawnAtTurn: rulesState.turnsUntilNextRule }],
     turnsUntilNextRule: TURNS_PER_RULE_CHANGE,
+    activeModifiers: newModifiers,
   };
 
-  // Apply the rule's state modifications
-  if (newRule.apply) {
-    return newRule.apply(updatedState);
-  }
-  return updatedState;
+  // Return serializable rule info for the popup (no functions)
+  const newRuleInfo = {
+    id: newRule.id,
+    name: newRule.name,
+    description: newRule.description,
+    type: newRule.type,
+    icon: newRule.icon,
+  };
+
+  return { updatedState, newRuleInfo };
 }
 
 /**
  * Decrement the turn counter toward the next rule
- * @param {object} rulesState
- * @returns {object} Updated state
  */
 export function tickTurnCounter(rulesState) {
   return {
@@ -67,12 +102,7 @@ export function tickTurnCounter(rulesState) {
 }
 
 /**
- * Check if a move is valid under the current active rules
- * This is used to override/augment chess.js validation
- * @param {object} move - { from, to, piece, captured }
- * @param {object} rulesState - Current rules engine state
- * @param {object} chess - chess.js instance
- * @returns {{ valid: boolean, reason: string | null }}
+ * Check if a move is blocked by active rules
  */
 export function validateMoveWithRules(move, rulesState, chess) {
   const modifiers = rulesState.activeModifiers || {};
@@ -89,11 +119,7 @@ export function validateMoveWithRules(move, rulesState, chess) {
 }
 
 /**
- * Get extra valid moves granted by active rules
- * @param {string} square - The square a piece is on (e.g., 'e2')
- * @param {object} rulesState - Current rules engine state
- * @param {object} chess - chess.js instance
- * @returns {Array} Extra moves [{from, to}, ...]
+ * Get extra valid moves granted by active rules (using rule IDs to look up functions)
  */
 export function getExtraMovesFromRules(square, rulesState, chess) {
   const piece = chess.get(square);
@@ -102,22 +128,20 @@ export function getExtraMovesFromRules(square, rulesState, chess) {
   const extraMoves = [];
   const modifiers = rulesState.activeModifiers || {};
 
-  for (const rule of rulesState.activeRules) {
-    if (rule.getExtraMoves) {
-      // Check if this rule's modifier is actually active
-      const modifierKey = Object.keys(modifiers).find((k) =>
-        rule.id.replace(/_([a-z])/g, (_, l) => l.toUpperCase()) ===
-        k.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '').replace(/_([a-z])/g, (_, l) => l.toUpperCase())
-      );
-      // Simpler: just check if any modifier for this rule is set
-      if (rule.apply) {
-        const testState = rule.apply({ activeModifiers: {} });
-        const ruleModKey = Object.keys(testState.activeModifiers)[0];
-        if (modifiers[ruleModKey]) {
-          const moves = rule.getExtraMoves(square, piece, chess);
-          extraMoves.push(...moves);
-        }
-      }
+  for (const ruleId of rulesState.activeRuleIds) {
+    const rule = getRuleById(ruleId);
+    if (!rule || !rule.getExtraMoves) continue;
+
+    // Check if this rule's modifier is active
+    const modifierKeys = {
+      reverse_pawns: 'reversePawns',
+      fortress_king: 'fortressKing',
+      bishop_surge: 'bishopSurge',
+    };
+    const modKey = modifierKeys[ruleId];
+    if (modKey && modifiers[modKey]) {
+      const moves = rule.getExtraMoves(square, piece, chess);
+      extraMoves.push(...moves);
     }
   }
 
@@ -126,10 +150,6 @@ export function getExtraMovesFromRules(square, rulesState, chess) {
 
 /**
  * Apply post-move effects from active rules (e.g., Explosive Captures)
- * @param {object} move - The move that was just made
- * @param {object} rulesState - Current rules engine state
- * @param {object} chess - chess.js instance (will be mutated)
- * @returns {object} Updated rules state
  */
 export function applyPostMoveEffects(move, rulesState, chess) {
   const modifiers = rulesState.activeModifiers || {};
@@ -137,9 +157,9 @@ export function applyPostMoveEffects(move, rulesState, chess) {
 
   // Explosive Captures: clear 3x3 grid around captured square
   if (modifiers.explosiveCaptures && move.captured) {
-    const explosiveRule = rulesState.activeRules.find((r) => r.id === 'explosive_captures');
-    if (explosiveRule) {
-      const affectedSquares = explosiveRule.getExplosionSquares(move.to);
+    const rule = getRuleById('explosive_captures');
+    if (rule) {
+      const affectedSquares = rule.getExplosionSquares(move.to);
       for (const sq of affectedSquares) {
         const piece = chess.get(sq);
         if (piece && piece.type !== 'k') {
@@ -161,20 +181,40 @@ export function applyPostMoveEffects(move, rulesState, chess) {
 }
 
 /**
+ * Get explosion squares for a given square (used by UI)
+ */
+export function getExplosionSquares(square) {
+  const rule = getRuleById('explosive_captures');
+  return rule ? rule.getExplosionSquares(square) : [];
+}
+
+/**
  * Check if a teleportation move is valid
- * @param {string} from - Source square
- * @param {string} to - Target square
- * @param {object} chess - chess.js instance
- * @param {string} currentPlayer - 'w' or 'b'
- * @returns {boolean}
  */
 export function isValidTeleportation(from, to, chess, currentPlayer) {
   const piece = chess.get(from);
   if (!piece) return false;
   if (piece.color !== currentPlayer) return false;
   const target = chess.get(to);
-  if (target) return false; // Must teleport to empty square
+  if (target) return false;
   return true;
+}
+
+/**
+ * Get serializable active rule info for the UI (no functions)
+ */
+export function getActiveRulesInfo(rulesState) {
+  return rulesState.activeRuleIds.map((id) => {
+    const rule = getRuleById(id);
+    if (!rule) return { id, name: id, description: '', type: '', icon: '❓' };
+    return {
+      id: rule.id,
+      name: rule.name,
+      description: rule.description,
+      type: rule.type,
+      icon: rule.icon,
+    };
+  });
 }
 
 export { TURNS_PER_RULE_CHANGE };
