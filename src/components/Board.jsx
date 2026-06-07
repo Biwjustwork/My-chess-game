@@ -114,25 +114,33 @@ export default function Board({ G, moves }) {
   }, [selectedSquare, validMoves, G.fen, currentColor, moves, computeValidMoves, G.rulesEngine]);
 
   const handleDrop = useCallback((from, to) => {
+    // 1. เพิ่มบรรทัดนี้เพื่อเช็กว่าถ้า from/to เป็น Object ให้ดึงค่า square ออกมา
+    const fromSquare = typeof from === 'object' ? from.square || from.id : from;
+    const toSquare = typeof to === 'object' ? to.square || to.id : to;
+
     const dropChess = new Chess(G.fen);
-    const movingPiece = dropChess.get(from);
+    
+    // 2. เปลี่ยนมาใช้ fromSquare และ toSquare
+    const movingPiece = dropChess.get(fromSquare);
+    
     if (!movingPiece || movingPiece.color !== currentColor) return;
 
     // Check for pawn promotion on drop
     if (movingPiece.type === 'p') {
-      const targetRank = to[1];
+      const targetRank = toSquare[1];
       if ((movingPiece.color === 'w' && targetRank === '8') || (movingPiece.color === 'b' && targetRank === '1')) {
-        setPromotionData({ from, to });
+        setPromotionData({ from: fromSquare, to: toSquare });
         return;
       }
     }
 
     if (G.rulesEngine?.teleportMode) {
-      moves.teleportPiece(from, to);
+      moves.teleportPiece(fromSquare, toSquare);
     } else if (G.rulesEngine?.pendingSecondMove) {
-      moves.completeSecondMove(from, to);
+      moves.completeSecondMove(fromSquare, toSquare);
     } else {
-      moves.makeMove(from, to);
+      // 3. ใช้ค่า string แท้ๆ ส่งเข้า boardgame.io
+      moves.makeMove(fromSquare, toSquare); 
     }
     setSelectedSquare(null);
     setValidMoves([]);

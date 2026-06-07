@@ -47,14 +47,13 @@ export function shouldDrawNewRule(turnCount) {
 }
 
 /**
- * Draw a new random rule and add it to the active rules
- * Returns { updatedState, newRule } where newRule is the serializable info
+ * Draw a new random rule and add it to the active rules.
+ * Mutates rulesState directly (Immer-compatible).
+ * Returns serializable rule info for the popup.
  */
 export function drawNewRule(rulesState) {
-  const newRule = getRandomRule(rulesState.activeRuleIds);
+  const newRule = getRandomRule([...rulesState.activeRuleIds]);
 
-  // Compute new modifiers by applying the rule
-  const newModifiers = { ...rulesState.activeModifiers };
   // Each rule sets a specific modifier key
   const modifierKeys = {
     reverse_pawns: 'reversePawns',
@@ -68,37 +67,29 @@ export function drawNewRule(rulesState) {
   };
   const modKey = modifierKeys[newRule.id];
   if (modKey) {
-    newModifiers[modKey] = true;
+    rulesState.activeModifiers[modKey] = true;
   }
 
-  const updatedState = {
-    ...rulesState,
-    activeRuleIds: [...rulesState.activeRuleIds, newRule.id],
-    ruleHistory: [...rulesState.ruleHistory, { ruleId: newRule.id, drawnAtTurn: rulesState.turnsUntilNextRule }],
-    turnsUntilNextRule: TURNS_PER_RULE_CHANGE,
-    activeModifiers: newModifiers,
-  };
+  rulesState.activeRuleIds.push(newRule.id);
+  rulesState.ruleHistory.push({ ruleId: newRule.id, drawnAtTurn: rulesState.turnsUntilNextRule });
+  rulesState.turnsUntilNextRule = TURNS_PER_RULE_CHANGE;
 
   // Return serializable rule info for the popup (no functions)
-  const newRuleInfo = {
+  return {
     id: newRule.id,
     name: newRule.name,
     description: newRule.description,
     type: newRule.type,
     icon: newRule.icon,
   };
-
-  return { updatedState, newRuleInfo };
 }
 
 /**
- * Decrement the turn counter toward the next rule
+ * Decrement the turn counter toward the next rule.
+ * Mutates rulesState directly (Immer-compatible).
  */
 export function tickTurnCounter(rulesState) {
-  return {
-    ...rulesState,
-    turnsUntilNextRule: rulesState.turnsUntilNextRule - 1,
-  };
+  rulesState.turnsUntilNextRule -= 1;
 }
 
 /**
@@ -149,11 +140,11 @@ export function getExtraMovesFromRules(square, rulesState, chess) {
 }
 
 /**
- * Apply post-move effects from active rules (e.g., Explosive Captures)
+ * Apply post-move effects from active rules (e.g., Explosive Captures).
+ * Mutates rulesState directly (Immer-compatible).
  */
 export function applyPostMoveEffects(move, rulesState, chess) {
   const modifiers = rulesState.activeModifiers || {};
-  let updatedState = { ...rulesState };
 
   // Explosive Captures: clear 3x3 grid around captured square
   if (modifiers.explosiveCaptures && move.captured) {
@@ -170,14 +161,9 @@ export function applyPostMoveEffects(move, rulesState, chess) {
   }
 
   // Knight's Frenzy: allow second move
-  if (modifiers.knightsFrenzy && move.piece === 'n' && !updatedState.pendingSecondMove) {
-    updatedState = {
-      ...updatedState,
-      pendingSecondMove: { piece: 'n', square: move.to, playerId: move.color },
-    };
+  if (modifiers.knightsFrenzy && move.piece === 'n' && !rulesState.pendingSecondMove) {
+    rulesState.pendingSecondMove = { piece: 'n', square: move.to, playerId: move.color };
   }
-
-  return updatedState;
 }
 
 /**

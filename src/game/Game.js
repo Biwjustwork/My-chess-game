@@ -20,6 +20,28 @@ import {
 } from './RulesEngine';
 
 /**
+ * Sanitize a chess.js Move object into a plain JSON-serializable object.
+ * chess.js v1 returns class instances with internal metadata that
+ * boardgame.io cannot serialize. We extract only the data we need.
+ */
+function sanitizeMove(move) {
+  if (!move) return null;
+  return {
+    from: move.from,
+    to: move.to,
+    piece: move.piece,
+    color: move.color,
+    captured: move.captured || null,
+    promotion: move.promotion || null,
+    flags: move.flags,
+    san: move.san || null,
+    lan: move.lan || null,
+    before: move.before || null,
+    after: move.after || null,
+  };
+}
+
+/**
  * Build the initial game state
  */
 function setupGame() {
@@ -175,7 +197,14 @@ const ChaosChess = {
         );
         if (!validation.valid) return;
 
-        moveResult = chess.move(moveObj);
+        // *** จุดที่ต้องแก้ไข: ครอบ Try...Catch ***
+        try {
+          moveResult = sanitizeMove(chess.move(moveObj));
+        } catch (error) {
+          console.warn("Invalid move caught:", error.message);
+          return; // ออกจากฟังก์ชันเงียบๆ หากเดินผิดกติกา
+        }
+        
         if (!moveResult) return;
       }
 
@@ -186,7 +215,7 @@ const ChaosChess = {
       }
 
       // Apply post-move effects (explosions, knight frenzy, etc.)
-      G.rulesEngine = applyPostMoveEffects(moveResult, G.rulesEngine, chess);
+      applyPostMoveEffects(moveResult, G.rulesEngine, chess);
 
       // Handle explosive captures visual feedback
       if (G.rulesEngine.activeModifiers.explosiveCaptures && moveResult.captured) {
@@ -235,13 +264,11 @@ const ChaosChess = {
       G.currentPlayer = chess.turn();
 
       // Tick rules engine counter and potentially draw new rule
-      G.rulesEngine = tickTurnCounter(G.rulesEngine);
+      tickTurnCounter(G.rulesEngine);
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        const { updatedState, newRuleInfo } = drawNewRule(G.rulesEngine);
-        G.rulesEngine = updatedState;
-        G.newRuleDrawn = newRuleInfo;
+        G.newRuleDrawn = drawNewRule(G.rulesEngine);
       }
 
       // End turn
@@ -262,7 +289,7 @@ const ChaosChess = {
       const piece = chess.get(from);
       if (!piece || piece.type !== 'n') return;
 
-      const moveResult = chess.move({ from, to });
+      const moveResult = sanitizeMove(chess.move({ from, to }));
       if (!moveResult) return;
 
       if (moveResult.captured) {
@@ -271,7 +298,7 @@ const ChaosChess = {
       }
 
       // Clear pending second move
-      G.rulesEngine = { ...G.rulesEngine, pendingSecondMove: null };
+      G.rulesEngine.pendingSecondMove = null;
 
       // Update game state
       G.fen = chess.fen();
@@ -296,13 +323,11 @@ const ChaosChess = {
       }
 
       G.currentPlayer = chess.turn();
-      G.rulesEngine = tickTurnCounter(G.rulesEngine);
+      tickTurnCounter(G.rulesEngine);
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        const { updatedState, newRuleInfo } = drawNewRule(G.rulesEngine);
-        G.rulesEngine = updatedState;
-        G.newRuleDrawn = newRuleInfo;
+        G.newRuleDrawn = drawNewRule(G.rulesEngine);
       }
 
       if (G.gameStatus === 'checkmate' || G.gameStatus === 'draw' || G.gameStatus === 'stalemate') {
@@ -336,13 +361,11 @@ const ChaosChess = {
       G.currentPlayer = G.currentPlayer === 'w' ? 'b' : 'w';
       G.rulesEngine.teleportMode = false;
 
-      G.rulesEngine = tickTurnCounter(G.rulesEngine);
+      tickTurnCounter(G.rulesEngine);
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        const { updatedState, newRuleInfo } = drawNewRule(G.rulesEngine);
-        G.rulesEngine = updatedState;
-        G.newRuleDrawn = newRuleInfo;
+        G.newRuleDrawn = drawNewRule(G.rulesEngine);
       }
 
       events.endTurn();
