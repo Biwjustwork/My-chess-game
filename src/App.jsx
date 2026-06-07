@@ -6,11 +6,11 @@
 import { useState, useCallback } from 'react';
 import { Client } from 'boardgame.io/react';
 import ChaosChess from './game/ChaosChessEngine';
-import Board from './components/Board';
-import RuleCard from './components/RuleCard';
-import TurnCounter from './components/TurnCounter';
-import GameStatus from './components/GameStatus';
-import RuleDraftModal from './components/RuleDraftModal';
+import Board from './components/board/Board';
+import RuleCard from './components/hud/RuleCard';
+import TurnCounter from './components/hud/TurnCounter';
+import GameStatus from './components/hud/GameStatus';
+import RuleDraftModal from './components/overlays/RuleDraftModal';
 import { getActiveRulesInfo } from './game/rulesEngine';
 
 /**
