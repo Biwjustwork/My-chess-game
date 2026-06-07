@@ -1,4 +1,4 @@
-import { RULE_TYPES } from '../constants/ruleTypes';
+import { RULE_TYPES } from './ruleTypes';
 
 export const movementRules = [
   {
@@ -28,13 +28,13 @@ export const movementRules = [
         // Check if square is empty
         const targetPiece = board.get(targetSquare);
         if (!targetPiece) {
-          extraMoves.push({ from: square, to: targetSquare });
+          extraMoves.push({ from: square, to: targetSquare, isExtra: true, shouldEndTurn: true });
         }
       } else if (piece.color === 'b' && rank < 8) {
         const targetSquare = String.fromCharCode(file) + (rank + 1);
         const targetPiece = board.get(targetSquare);
         if (!targetPiece) {
-          extraMoves.push({ from: square, to: targetSquare });
+          extraMoves.push({ from: square, to: targetSquare, isExtra: true, shouldEndTurn: true });
         }
       }
       return extraMoves;
@@ -85,7 +85,7 @@ export const movementRules = [
           const targetSquare = String.fromCharCode(nf) + nr;
           const targetPiece = board.get(targetSquare);
           if (!targetPiece || targetPiece.color !== piece.color) {
-            extraMoves.push({ from: square, to: targetSquare });
+            extraMoves.push({ from: square, to: targetSquare, isExtra: true, shouldEndTurn: true });
           }
         }
       }
@@ -119,7 +119,7 @@ export const movementRules = [
           const targetSquare = String.fromCharCode(nf) + nr;
           const targetPiece = board.get(targetSquare);
           if (!targetPiece || targetPiece.color !== piece.color) {
-            extraMoves.push({ from: square, to: targetSquare });
+            extraMoves.push({ from: square, to: targetSquare, isExtra: true, shouldEndTurn: true });
           }
         }
       }
@@ -139,6 +139,42 @@ export const movementRules = [
     revert: (gameState) => {
       const { phantomRook, ...rest } = gameState.activeModifiers;
       return { ...gameState, activeModifiers: rest };
+    },
+    getExtraMoves: (square, piece, board) => {
+      if (piece.type !== 'r') return [];
+      const file = square.charCodeAt(0);
+      const rank = parseInt(square[1]);
+      const orthogonalOffsets = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+      const extraMoves = [];
+
+      for (const [df, dr] of orthogonalOffsets) {
+        let nf = file;
+        let nr = rank;
+        let piecesJumped = 0;
+
+        while (true) {
+          nf += df;
+          nr += dr;
+          if (nf < 97 || nf > 104 || nr < 1 || nr > 8) break;
+
+          const targetSquare = String.fromCharCode(nf) + nr;
+          const targetPiece = board.get(targetSquare);
+
+          if (targetPiece) {
+            piecesJumped++;
+            if (piecesJumped > 1) {
+              break; // Cannot jump over more than 1 piece
+            }
+          } else {
+            if (piecesJumped === 1) {
+              // Valid empty square after jumping exactly 1 piece
+              // Note: Cannot capture immediately after jumping since targetPiece must be empty here
+              extraMoves.push({ from: square, to: targetSquare, isExtra: true, shouldEndTurn: true });
+            }
+          }
+        }
+      }
+      return extraMoves;
     },
   },
 ];

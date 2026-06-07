@@ -3,16 +3,16 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Chess } from 'chess.js';
 import Square from './Square';
-import { getAllValidMoves } from '../game/Game';
+import { getAllValidMoves } from '../../game/ChaosChessEngine';
 
-import WQueen from '../Img-chess/W-Queen.png';
-import WRook from '../Img-chess/W-Rook.png';
-import WBishop from '../Img-chess/W-Bishop.png';
-import WKnight from '../Img-chess/W-Knight.png';
-import BQueen from '../Img-chess/B-Queen.png';
-import BRook from '../Img-chess/B-Rook.png';
-import BBishop from '../Img-chess/B-Bishop.png';
-import BKnight from '../Img-chess/B-Knight.png';
+import WQueen from '../../assets/pieces/w-queen.png';
+import WRook from '../../assets/pieces/w-rook.png';
+import WBishop from '../../assets/pieces/w-bishop.png';
+import WKnight from '../../assets/pieces/w-knight.png';
+import BQueen from '../../assets/pieces/b-queen.png';
+import BRook from '../../assets/pieces/b-rook.png';
+import BBishop from '../../assets/pieces/b-bishop.png';
+import BKnight from '../../assets/pieces/b-knight.png';
 
 const PROMOTION_IMAGES = {
   wq: WQueen, wr: WRook, wb: WBishop, wn: WKnight,
@@ -25,7 +25,7 @@ const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 /**
  * Chess board component - renders 8x8 grid with interaction
  */
-export default function Board({ G, moves }) {
+export default function Board({ G, moves, reset }) {
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
 
@@ -114,25 +114,33 @@ export default function Board({ G, moves }) {
   }, [selectedSquare, validMoves, G.fen, currentColor, moves, computeValidMoves, G.rulesEngine]);
 
   const handleDrop = useCallback((from, to) => {
+    // 1. เพิ่มบรรทัดนี้เพื่อเช็กว่าถ้า from/to เป็น Object ให้ดึงค่า square ออกมา
+    const fromSquare = typeof from === 'object' ? from.square || from.id : from;
+    const toSquare = typeof to === 'object' ? to.square || to.id : to;
+
     const dropChess = new Chess(G.fen);
-    const movingPiece = dropChess.get(from);
+    
+    // 2. เปลี่ยนมาใช้ fromSquare และ toSquare
+    const movingPiece = dropChess.get(fromSquare);
+    
     if (!movingPiece || movingPiece.color !== currentColor) return;
 
     // Check for pawn promotion on drop
     if (movingPiece.type === 'p') {
-      const targetRank = to[1];
+      const targetRank = toSquare[1];
       if ((movingPiece.color === 'w' && targetRank === '8') || (movingPiece.color === 'b' && targetRank === '1')) {
-        setPromotionData({ from, to });
+        setPromotionData({ from: fromSquare, to: toSquare });
         return;
       }
     }
 
     if (G.rulesEngine?.teleportMode) {
-      moves.teleportPiece(from, to);
+      moves.teleportPiece(fromSquare, toSquare);
     } else if (G.rulesEngine?.pendingSecondMove) {
-      moves.completeSecondMove(from, to);
+      moves.completeSecondMove(fromSquare, toSquare);
     } else {
-      moves.makeMove(from, to);
+      // 3. ใช้ค่า string แท้ๆ ส่งเข้า boardgame.io
+      moves.makeMove(fromSquare, toSquare); 
     }
     setSelectedSquare(null);
     setValidMoves([]);
@@ -171,6 +179,7 @@ export default function Board({ G, moves }) {
                     isValidMove={isSquareValidMove(square)}
                     isLastMove={isSquareLastMove(square)}
                     isExplosion={isSquareExplosion(square)}
+                    isCurrentPlayerPiece={piece && piece.color === currentColor}
                     onSquareClick={handleSquareClick}
                     onDrop={handleDrop}
                   />
@@ -184,6 +193,19 @@ export default function Board({ G, moves }) {
               <span key={f} className="board-label">{f}</span>
             ))}
           </div>
+
+          {/* Game Over / Checkmate Overlay */}
+          {G.gameStatus === 'checkmate' && (
+            <div className="game-over-overlay">
+              <div className="game-over-dialog">
+                <h2>CHECKMATE!</h2>
+                <p>{G.currentPlayer === 'w' ? 'Black' : 'White'} wins the game!</p>
+                <button onClick={() => reset()} className="play-again-btn">
+                  Play Again
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Teleport button */}

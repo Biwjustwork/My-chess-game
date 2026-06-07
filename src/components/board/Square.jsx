@@ -12,6 +12,7 @@ export default function Square({
   isValidMove,
   isLastMove,
   isExplosion,
+  isCurrentPlayerPiece,
   onSquareClick,
   onDrop,
 }) {
@@ -48,7 +49,7 @@ export default function Square({
         outlineOffset: '-3px',
       }}
     >
-      {piece && <Piece piece={piece} square={square} />}
+      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece} />}
       {isValidMove && !piece && <div className="valid-move-dot" />}
       {hasCapture && <div className="valid-capture-ring" />}
     </div>

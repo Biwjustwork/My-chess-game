@@ -5,40 +5,21 @@
 
 import { useState, useCallback } from 'react';
 import { Client } from 'boardgame.io/react';
-import ChaosChess from './game/Game';
-import Board from './components/Board';
-import RuleCard from './components/RuleCard';
-import TurnCounter from './components/TurnCounter';
-import GameStatus from './components/GameStatus';
-import NewRulePopup from './components/NewRulePopup';
-import { getActiveRulesInfo } from './game/RulesEngine';
+import ChaosChess from './game/ChaosChessEngine';
+import Board from './components/board/Board';
+import RuleCard from './components/hud/RuleCard';
+import TurnCounter from './components/hud/TurnCounter';
+import GameStatus from './components/hud/GameStatus';
+import RuleDraftModal from './components/overlays/RuleDraftModal';
+import { getActiveRulesInfo } from './game/rulesEngine';
 
 /**
  * The main board component receives boardgame.io props
  */
-function ChaosChessBoard({ G, ctx, moves }) {
-  const [showNewRule, setShowNewRule] = useState(null);
-
-  // Detect when a new rule is drawn
-  // We track it locally to show the popup
-  const handleNewRule = useCallback(() => {
-    if (G.newRuleDrawn && (!showNewRule || showNewRule.id !== G.newRuleDrawn.id)) {
-      setShowNewRule(G.newRuleDrawn);
-    }
-  }, [G.newRuleDrawn, showNewRule]);
-
-  // Trigger check on render
-  if (G.newRuleDrawn && (!showNewRule || showNewRule.id !== G.newRuleDrawn.id)) {
-    // Use setTimeout to avoid setting state during render
-    setTimeout(() => setShowNewRule(G.newRuleDrawn), 0);
-  }
-
-  const dismissPopup = useCallback(() => {
-    setShowNewRule(null);
-    if (G.newRuleDrawn) {
-      moves.clearNewRule();
-    }
-  }, [moves, G.newRuleDrawn]);
+function ChaosChessBoard({ G, ctx, moves, reset }) {
+  const handleSelectDraftedRule = (ruleId) => {
+    moves.selectDraftedRule(ruleId);
+  };
 
   return (
     <div className="app-container">
@@ -60,7 +41,7 @@ function ChaosChessBoard({ G, ctx, moves }) {
         </div>
 
         {/* Board */}
-        <Board G={G} ctx={ctx} moves={moves} />
+        <Board G={G} ctx={ctx} moves={moves} reset={reset} />
 
         {/* Right Sidebar */}
         <div className="sidebar">
@@ -68,9 +49,12 @@ function ChaosChessBoard({ G, ctx, moves }) {
         </div>
       </div>
 
-      {/* New Rule Popup */}
-      {showNewRule && (
-        <NewRulePopup rule={showNewRule} onDismiss={dismissPopup} />
+      {/* Rule Drafting Modal */}
+      {G.isDraftingRule && (
+        <RuleDraftModal 
+          draftedRules={G.draftedRules} 
+          onSelectRule={handleSelectDraftedRule} 
+        />
       )}
     </div>
   );

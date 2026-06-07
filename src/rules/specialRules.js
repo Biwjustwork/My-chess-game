@@ -1,4 +1,4 @@
-import { RULE_TYPES } from '../constants/ruleTypes';
+import { RULE_TYPES } from './ruleTypes';
 
 export const specialRules = [
   {
