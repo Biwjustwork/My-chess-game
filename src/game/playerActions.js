@@ -304,7 +304,9 @@ export const promote = ({ G, ctx, events }, piece) => {
 
 export const selectDraftedRule = ({ G, events }, ruleId) => {
   if (!G.isDraftingRule) return;
-  applyRule(G.rulesEngine, ruleId);
+  const draftedRule = G.draftedRules.find(r => r.id === ruleId);
+  const duration = draftedRule ? draftedRule.duration : undefined;
+  applyRule(G.rulesEngine, ruleId, duration);
   G.draftedRules = [];
   G.isDraftingRule = false;
 };

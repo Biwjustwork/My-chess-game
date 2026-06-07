@@ -74,12 +74,17 @@ export function draftRules(rulesState) {
   for (let i = 0; i < 3; i++) {
     const newRule = getRandomRule(excludeIds);
     if (!newRule) break;
+    
+    // Set random duration between 1 and 8 turns during drafting so UI can display it
+    const duration = Math.floor(Math.random() * 8) + 1;
+    
     drafted.push({
       id: newRule.id,
       name: newRule.name,
       description: newRule.description,
       type: newRule.type,
       icon: newRule.icon,
+      duration: duration,
     });
     if (!excludeIds.includes(newRule.id)) {
       excludeIds.push(newRule.id);
@@ -92,7 +97,7 @@ export function draftRules(rulesState) {
  * Apply a selected drafted rule.
  * Mutates rulesState directly (Immer-compatible).
  */
-export function applyRule(rulesState, ruleId) {
+export function applyRule(rulesState, ruleId, duration) {
   const rule = getRuleById(ruleId);
   if (!rule) return;
 
@@ -101,9 +106,9 @@ export function applyRule(rulesState, ruleId) {
     rulesState.activeModifiers[modKey] = true;
   }
 
-  // Set random duration between 1 and 8 turns
-  const duration = Math.floor(Math.random() * 8) + 1;
-  rulesState.ruleDurations[ruleId] = duration;
+  // Use the provided duration, or default to random if not supplied
+  const finalDuration = duration !== undefined ? duration : (Math.floor(Math.random() * 8) + 1);
+  rulesState.ruleDurations[ruleId] = finalDuration;
 
   if (!rulesState.activeRuleIds.includes(ruleId)) {
     rulesState.activeRuleIds.push(ruleId);

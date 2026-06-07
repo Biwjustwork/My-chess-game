@@ -3,6 +3,7 @@
  * Move validation, extra moves, post-move effects, and teleportation logic.
  */
 
+import { Chess } from 'chess.js';
 import { getRuleById } from './core';
 
 /**

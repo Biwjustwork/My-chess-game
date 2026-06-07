@@ -29,7 +29,13 @@ export default function RuleDraftModal({ draftedRules, onSelectRule }) {
                 {rule.description}
               </p>
               
-              <div className="mt-6 w-full pt-4 border-t border-white/10 relative z-10">
+              <div className="mt-4 mb-2 bg-purple-500/20 rounded-full px-4 py-1 border border-purple-500/30 relative z-10">
+                <span className="text-xs font-bold text-purple-300">
+                  ⏳ Lasts for {rule.duration} {rule.duration === 1 ? 'turn' : 'turns'}
+                </span>
+              </div>
+              
+              <div className="mt-4 w-full pt-4 border-t border-white/10 relative z-10">
                 <span className="text-xs font-bold uppercase tracking-widest text-purple-400 group-hover:text-cyan-400 transition-colors duration-300">
                   Select Rule
                 </span>
