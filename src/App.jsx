@@ -16,7 +16,7 @@ import { getActiveRulesInfo } from './game/rulesEngine';
 /**
  * The main board component receives boardgame.io props
  */
-function ChaosChessBoard({ G, ctx, moves }) {
+function ChaosChessBoard({ G, ctx, moves, reset }) {
   const handleSelectDraftedRule = (ruleId) => {
     moves.selectDraftedRule(ruleId);
   };
@@ -41,7 +41,7 @@ function ChaosChessBoard({ G, ctx, moves }) {
         </div>
 
         {/* Board */}
-        <Board G={G} ctx={ctx} moves={moves} />
+        <Board G={G} ctx={ctx} moves={moves} reset={reset} />
 
         {/* Right Sidebar */}
         <div className="sidebar">

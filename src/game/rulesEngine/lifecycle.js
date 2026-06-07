@@ -41,11 +41,20 @@ export function getExtraMovesFromRules(square, rulesState, chess) {
       reverse_pawns: 'reversePawns',
       fortress_king: 'fortressKing',
       bishop_surge: 'bishopSurge',
+      phantom_rook: 'phantomRook',
     };
     const modKey = modifierKeys[ruleId];
     if (modKey && modifiers[modKey]) {
-      const moves = rule.getExtraMoves(square, piece, chess);
-      extraMoves.push(...moves);
+      try {
+        const moves = rule.getExtraMoves(square, piece, chess);
+        if (!Array.isArray(moves)) {
+          console.error(`[Rules Engine] Error: Rule ${rule.id} did not return an array of moves. Returned:`, moves);
+        } else {
+          extraMoves.push(...moves);
+        }
+      } catch (error) {
+        console.error(`[Rules Engine] Exception executing getExtraMoves for rule ${rule.id}:`, error);
+      }
     }
   }
 

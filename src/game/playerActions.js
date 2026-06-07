@@ -15,6 +15,13 @@ import { setupGame } from './initialGameState';
 
 export const selectSquare = ({ G, playerID }, square) => {
   if (G.isDraftingRule) return;
+
+  if (G.rulesEngine.pendingSecondMove) {
+    if (square !== G.rulesEngine.pendingSecondMove.square) {
+      return;
+    }
+  }
+
   const chess = new Chess(G.fen);
   const currentColor = G.currentPlayer;
   const piece = chess.get(square);
@@ -42,11 +49,11 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
   if (!piece || piece.color !== currentColor) return;
 
   const extraMoves = getExtraMovesFromRules(from, G.rulesEngine, chess);
-  const isExtraMove = extraMoves.some((m) => m.from === from && m.to === to);
+  const extraMovePlayed = extraMoves.find((m) => m.from === from && m.to === to);
 
   let moveResult = null;
 
-  if (isExtraMove) {
+  if (extraMovePlayed) {
     const targetPiece = chess.get(to);
     const captured = targetPiece ? targetPiece.type : null;
 
@@ -60,6 +67,16 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
     chess.remove(from);
     if (targetPiece) chess.remove(to);
     chess.put(piece, to);
+
+    if (extraMovePlayed.shouldEndTurn !== false) {
+      const tokens = chess.fen().split(' ');
+      tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
+      if (tokens[1] === 'w') {
+        tokens[5] = String(parseInt(tokens[5], 10) + 1);
+      }
+      tokens[3] = '-';
+      chess.load(tokens.join(' '));
+    }
 
     moveResult = {
       from,
@@ -115,6 +132,13 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
   }
 
   if (G.rulesEngine.pendingSecondMove) {
+    const tokens = chess.fen().split(' ');
+    tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
+    if (tokens[1] === 'b') {
+      tokens[5] = String(Math.max(1, parseInt(tokens[5], 10) - 1));
+    }
+    chess.load(tokens.join(' '));
+
     G.fen = chess.fen();
     G.board = chess.board();
     G.lastMove = { from: moveResult.from, to: moveResult.to };

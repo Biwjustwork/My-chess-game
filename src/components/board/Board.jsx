@@ -25,7 +25,7 @@ const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 /**
  * Chess board component - renders 8x8 grid with interaction
  */
-export default function Board({ G, moves }) {
+export default function Board({ G, moves, reset }) {
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
 
@@ -179,6 +179,7 @@ export default function Board({ G, moves }) {
                     isValidMove={isSquareValidMove(square)}
                     isLastMove={isSquareLastMove(square)}
                     isExplosion={isSquareExplosion(square)}
+                    isCurrentPlayerPiece={piece && piece.color === currentColor}
                     onSquareClick={handleSquareClick}
                     onDrop={handleDrop}
                   />
@@ -192,6 +193,19 @@ export default function Board({ G, moves }) {
               <span key={f} className="board-label">{f}</span>
             ))}
           </div>
+
+          {/* Game Over / Checkmate Overlay */}
+          {G.gameStatus === 'checkmate' && (
+            <div className="game-over-overlay">
+              <div className="game-over-dialog">
+                <h2>CHECKMATE!</h2>
+                <p>{G.currentPlayer === 'w' ? 'Black' : 'White'} wins the game!</p>
+                <button onClick={() => reset()} className="play-again-btn">
+                  Play Again
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Teleport button */}

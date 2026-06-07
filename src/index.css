@@ -280,6 +280,25 @@ body {
   transform: scale(1.15);
 }
 
+/* Active Player Piece Glow */
+.piece-active-w {
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
+  animation: pulse-glow-w 2s ease-in-out infinite;
+}
+
+.piece-active-w:hover {
+  filter: drop-shadow(0 0 12px rgba(6, 182, 212, 1));
+}
+
+.piece-active-b {
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.8));
+  animation: pulse-glow-b 2s ease-in-out infinite;
+}
+
+.piece-active-b:hover {
+  filter: drop-shadow(0 0 12px rgba(244, 63, 94, 1));
+}
+
 /* ===== Turn Counter ===== */
 .turn-counter {
   text-align: center;
@@ -744,6 +763,86 @@ body {
   0% { transform: translate(0, 0) scale(0); opacity: 0; }
   20% { opacity: 1; transform: scale(1); }
   100% { transform: translate(var(--tx, 30px), var(--ty, -40px)) scale(0); opacity: 0; }
+}
+
+@keyframes pulse-glow-w {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.6)); }
+  50% { filter: drop-shadow(0 0 14px rgba(6, 182, 212, 1)); }
+}
+
+@keyframes pulse-glow-b {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(244, 63, 94, 0.6)); }
+  50% { filter: drop-shadow(0 0 14px rgba(244, 63, 94, 1)); }
+}
+
+/* ===== Game Over Overlay ===== */
+.game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.4s ease;
+  border-radius: 12px;
+}
+
+.game-over-dialog {
+  background: linear-gradient(135deg, rgba(30,30,60,0.95), rgba(20,20,50,0.95));
+  border: 2px solid rgba(244, 63, 94, 0.5);
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+  animation: popup-entrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(244, 63, 94, 0.4), 0 20px 50px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.game-over-dialog h2 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-rose), var(--accent-amber));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.game-over-dialog p {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.play-again-btn {
+  padding: 0.85rem 2.5rem;
+  border: none;
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent-rose), var(--accent-amber));
+  color: white;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.4);
+  width: 100%;
+}
+
+.play-again-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(244, 63, 94, 0.6);
 }
 
 /* ===== Responsive ===== */
