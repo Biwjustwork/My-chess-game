@@ -31,6 +31,7 @@ export function getRuleById(id) {
 export function initRulesEngine() {
   return {
     activeRuleIds: [],        // Array of active rule IDs (strings only)
+    ruleDurations: {},        // Map of ruleId -> remaining turns (1-8)
     ruleHistory: [],          // History: [{ ruleId, drawnAtTurn }]
     turnsUntilNextRule: TURNS_PER_RULE_CHANGE,
     activeModifiers: {},      // Key-value map of active modifier flags (booleans)
@@ -95,7 +96,13 @@ export function applyRule(rulesState, ruleId) {
     rulesState.activeModifiers[modKey] = true;
   }
 
-  rulesState.activeRuleIds.push(ruleId);
+  // Set random duration between 1 and 8 turns
+  const duration = Math.floor(Math.random() * 8) + 1;
+  rulesState.ruleDurations[ruleId] = duration;
+
+  if (!rulesState.activeRuleIds.includes(ruleId)) {
+    rulesState.activeRuleIds.push(ruleId);
+  }
   rulesState.ruleHistory.push({ ruleId, drawnAtTurn: rulesState.turnsUntilNextRule });
   rulesState.turnsUntilNextRule = TURNS_PER_RULE_CHANGE;
 }
@@ -106,6 +113,41 @@ export function applyRule(rulesState, ruleId) {
  */
 export function tickTurnCounter(rulesState) {
   rulesState.turnsUntilNextRule -= 1;
+
+  // Decrease duration of active rules and expire them if they reach 0
+  const modifierKeys = {
+    reverse_pawns: 'reversePawns',
+    explosive_captures: 'explosiveCaptures',
+    knights_frenzy: 'knightsFrenzy',
+    teleportation: 'teleportation',
+    fortress_king: 'fortressKing',
+    shield_wall: 'shieldWall',
+    bishop_surge: 'bishopSurge',
+    phantom_rook: 'phantomRook',
+  };
+
+  const remainingRuleIds = [];
+  for (const ruleId of rulesState.activeRuleIds) {
+    if (rulesState.ruleDurations[ruleId] > 0) {
+      rulesState.ruleDurations[ruleId] -= 1;
+    }
+    
+    if (rulesState.ruleDurations[ruleId] === 0) {
+      // Expire rule
+      delete rulesState.ruleDurations[ruleId];
+      const modKey = modifierKeys[ruleId];
+      if (modKey) {
+        delete rulesState.activeModifiers[modKey];
+      }
+      // Special cleanup for teleportation
+      if (ruleId === 'teleportation') {
+        rulesState.teleportMode = false;
+      }
+    } else {
+      remainingRuleIds.push(ruleId);
+    }
+  }
+  rulesState.activeRuleIds = remainingRuleIds;
 }
 
 /**
@@ -208,13 +250,15 @@ export function isValidTeleportation(from, to, chess, currentPlayer) {
 export function getActiveRulesInfo(rulesState) {
   return rulesState.activeRuleIds.map((id) => {
     const rule = getRuleById(id);
-    if (!rule) return { id, name: id, description: '', type: '', icon: '❓' };
+    const duration = rulesState.ruleDurations[id] || 0;
+    if (!rule) return { id, name: id, description: '', type: '', icon: '❓', duration };
     return {
       id: rule.id,
       name: rule.name,
       description: rule.description,
       type: rule.type,
       icon: rule.icon,
+      duration: duration,
     };
   });
 }

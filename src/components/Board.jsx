@@ -3,7 +3,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Chess } from 'chess.js';
 import Square from './Square';
-import { getAllValidMoves } from '../game/Game';
+import { getAllValidMoves } from '../game/ChaosChessEngine';
 
 import WQueen from '../Img-chess/W-Queen.png';
 import WRook from '../Img-chess/W-Rook.png';

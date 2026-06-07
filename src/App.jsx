@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from 'react';
 import { Client } from 'boardgame.io/react';
-import ChaosChess from './game/Game';
+import ChaosChess from './game/ChaosChessEngine';
 import Board from './components/Board';
 import RuleCard from './components/RuleCard';
 import TurnCounter from './components/TurnCounter';

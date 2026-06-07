@@ -32,10 +32,17 @@ export default function RuleCard({ activeRules }) {
               <div className="flex-1 min-w-0">
                 <div className="font-display font-bold text-[0.95rem] text-white truncate">{rule.name}</div>
                 
-                {/* Type Badge */}
-                <span className={`text-[0.6rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded mt-1 inline-block ${TYPE_COLORS[rule.type] || 'bg-purple-500/20 text-purple-400'}`}>
-                  {rule.type}
-                </span>
+                {/* Badges */}
+                <div className="flex gap-2 items-center mt-1">
+                  <span className={`text-[0.6rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded inline-block ${TYPE_COLORS[rule.type] || 'bg-purple-500/20 text-purple-400'}`}>
+                    {rule.type}
+                  </span>
+                  {rule.duration > 0 && (
+                    <span className="text-[0.6rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      ⏱ {rule.duration} {rule.duration === 1 ? 'TURN' : 'TURNS'}
+                    </span>
+                  )}
+                </div>
 
                 {/* Expanding Description on Hover */}
                 <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-all duration-300 ease-out mt-1">
