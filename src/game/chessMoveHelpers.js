@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { validateMoveWithRules, getExtraMovesFromRules } from './RulesEngine';
+import { validateMoveWithRules, getExtraMovesFromRules } from './rulesEngine';
 
 /**
  * Sanitize a chess.js Move object into a plain JSON-serializable object.

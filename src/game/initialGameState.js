@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { initRulesEngine } from './RulesEngine';
+import { initRulesEngine } from './rulesEngine';
 
 /**
  * Build the initial game state

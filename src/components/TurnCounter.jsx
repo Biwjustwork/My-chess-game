@@ -2,7 +2,7 @@
  * TurnCounter - Shows turn number, countdown to next rule, and current player
  */
 
-import { TURNS_PER_RULE_CHANGE } from '../game/RulesEngine';
+import { TURNS_PER_RULE_CHANGE } from '../game/rulesEngine';
 
 export default function TurnCounter({ turnCount, turnsUntilNextRule, currentPlayer }) {
   const progress = ((TURNS_PER_RULE_CHANGE - turnsUntilNextRule) / TURNS_PER_RULE_CHANGE) * 100;

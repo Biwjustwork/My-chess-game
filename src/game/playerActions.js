@@ -9,7 +9,7 @@ import {
   applyPostMoveEffects,
   isValidTeleportation,
   getExplosionSquares,
-} from './RulesEngine';
+} from './rulesEngine';
 import { sanitizeMove, getAllValidMoves } from './chessMoveHelpers';
 import { setupGame } from './initialGameState';
 

@@ -11,7 +11,7 @@ import RuleCard from './components/RuleCard';
 import TurnCounter from './components/TurnCounter';
 import GameStatus from './components/GameStatus';
 import RuleDraftModal from './components/RuleDraftModal';
-import { getActiveRulesInfo } from './game/RulesEngine';
+import { getActiveRulesInfo } from './game/rulesEngine';
 
 /**
  * The main board component receives boardgame.io props
