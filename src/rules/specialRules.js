@@ -4,7 +4,7 @@ export const specialRules = [
   {
     id: 'teleportation',
     name: 'Teleportation',
-    description: 'Instead of moving normally, a player can teleport one of their pieces to ANY empty square (costs a turn).',
+    description: 'Instead of moving normally, a player can teleport one of their pieces to a RANDOM square! It can even land on and capture enemy pieces (except the King).',
     type: RULE_TYPES.SPECIAL,
     icon: '✨',
     affectedPieces: ['all'],
@@ -26,6 +26,21 @@ export const specialRules = [
         }
       }
       return emptySquares;
+    },
+  },
+  {
+    id: 'freeze',
+    name: 'Freeze',
+    description: 'A random piece from each side (except Kings) is frozen in ice for 1-3 turns and cannot move!',
+    type: RULE_TYPES.SPECIAL,
+    icon: '❄️',
+    affectedPieces: ['all'],
+    apply: (gameState) => {
+      return { ...gameState, activeModifiers: { ...gameState.activeModifiers, freeze: true } };
+    },
+    revert: (gameState) => {
+      const { freeze, ...rest } = gameState.activeModifiers;
+      return { ...gameState, activeModifiers: rest };
     },
   },
 ];

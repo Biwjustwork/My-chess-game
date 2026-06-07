@@ -51,29 +51,12 @@ export default function Board({ G, moves, reset }) {
 
     // Teleport mode
     if (G.rulesEngine?.teleportMode) {
-      if (selectedSquare && !piece) {
-        moves.teleportPiece(selectedSquare, square);
+      if (piece && piece.color === currentColor) {
+        moves.teleportPiece(square, 'random');
         setSelectedSquare(null);
         setValidMoves([]);
-        return;
       }
-      if (piece && piece.color === currentColor) {
-        setSelectedSquare(square);
-        // In teleport mode, check if the teleportation is valid (e.g. doesn't leave King in check)
-        const emptySquares = [];
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const sq = String.fromCharCode(97 + c) + (8 - r);
-            if (!clickChess.get(sq)) {
-              if (isValidTeleportation(square, sq, clickChess, currentColor)) {
-                emptySquares.push({ from: square, to: sq });
-              }
-            }
-          }
-        }
-        setValidMoves(emptySquares);
-        return;
-      }
+      return;
     }
 
     // Knight's Frenzy second move
@@ -146,7 +129,7 @@ export default function Board({ G, moves, reset }) {
     }
 
     if (G.rulesEngine?.teleportMode) {
-      moves.teleportPiece(fromSquare, toSquare);
+      moves.teleportPiece(fromSquare, 'random');
     } else if (G.rulesEngine?.pendingSecondMove) {
       moves.completeSecondMove(fromSquare, toSquare);
     } else {
@@ -172,6 +155,19 @@ export default function Board({ G, moves, reset }) {
   const isSquareLastMove = (sq) => G.lastMove && (sq === G.lastMove.from || sq === G.lastMove.to);
   const isSquareExplosion = (sq) => G.explosionSquares && G.explosionSquares.includes(sq);
 
+  const isSquareFrozen = (sq) => {
+    const frozen = G.rulesEngine?.frozenPieces;
+    if (!frozen) return false;
+    return (frozen.w?.square === sq) || (frozen.b?.square === sq);
+  };
+
+  const isSquareExhausted = (sq) => {
+    const exhausted = G.rulesEngine?.exhaustedPieces;
+    if (!exhausted) return false;
+    return (exhausted.w || []).some(p => p.square === sq) || 
+           (exhausted.b || []).some(p => p.square === sq);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="board-section">
@@ -190,6 +186,8 @@ export default function Board({ G, moves, reset }) {
                     isValidMove={isSquareValidMove(square)}
                     isLastMove={isSquareLastMove(square)}
                     isExplosion={isSquareExplosion(square)}
+                    isFrozen={isSquareFrozen(square)}
+                    isExhausted={isSquareExhausted(square)}
                     isCurrentPlayerPiece={piece && piece.color === currentColor}
                     onSquareClick={handleSquareClick}
                     onDrop={handleDrop}

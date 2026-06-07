@@ -31,6 +31,7 @@ export const MODIFIER_KEYS = {
   shield_wall: 'shieldWall',
   bishop_surge: 'bishopSurge',
   phantom_rook: 'phantomRook',
+  freeze: 'freeze',
 };
 
 /**
@@ -52,6 +53,10 @@ export function initRulesEngine() {
     activeModifiers: {},      // Key-value map of active modifier flags (booleans)
     pendingSecondMove: null,  // { piece, square, playerId } or null
     teleportMode: false,
+    explosiveUsed: { w: false, b: false },
+    explodedThisTurn: false,
+    exhaustedPieces: { w: [], b: [] },
+    frozenPieces: { w: null, b: null },
   };
 }
 
@@ -97,13 +102,45 @@ export function draftRules(rulesState) {
  * Apply a selected drafted rule.
  * Mutates rulesState directly (Immer-compatible).
  */
-export function applyRule(rulesState, ruleId, duration) {
+export function applyRule(rulesState, ruleId, duration, G) {
   const rule = getRuleById(ruleId);
   if (!rule) return;
 
   const modKey = MODIFIER_KEYS[ruleId];
   if (modKey) {
     rulesState.activeModifiers[modKey] = true;
+  }
+
+  if (ruleId === 'explosive_captures') {
+    rulesState.explosiveUsed = { w: false, b: false };
+  }
+
+  if (ruleId === 'freeze' && G && G.board) {
+    const wPieces = [];
+    const bPieces = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = G.board[r][c];
+        if (piece && piece.type !== 'k') {
+          const sq = String.fromCharCode(97 + c) + (8 - r);
+          if (piece.color === 'w') wPieces.push(sq);
+          else bPieces.push(sq);
+        }
+      }
+    }
+    rulesState.frozenPieces = { w: null, b: null };
+    if (wPieces.length > 0) {
+      rulesState.frozenPieces.w = {
+        square: wPieces[Math.floor(Math.random() * wPieces.length)],
+        remaining: Math.floor(Math.random() * 3) + 1
+      };
+    }
+    if (bPieces.length > 0) {
+      rulesState.frozenPieces.b = {
+        square: bPieces[Math.floor(Math.random() * bPieces.length)],
+        remaining: Math.floor(Math.random() * 3) + 1
+      };
+    }
   }
 
   // Use the provided duration, or default to random if not supplied
@@ -121,7 +158,7 @@ export function applyRule(rulesState, ruleId, duration) {
  * Decrement the turn counter toward the next rule.
  * Mutates rulesState directly (Immer-compatible).
  */
-export function tickTurnCounter(rulesState) {
+export function tickTurnCounter(rulesState, currentPlayer) {
   rulesState.turnsUntilNextRule -= 1;
 
   // Decrease duration of active rules and expire them if they reach 0
@@ -142,9 +179,32 @@ export function tickTurnCounter(rulesState) {
       if (ruleId === 'teleportation') {
         rulesState.teleportMode = false;
       }
+      if (ruleId === 'freeze') {
+        rulesState.frozenPieces = { w: null, b: null };
+      }
     } else {
       remainingRuleIds.push(ruleId);
     }
   }
   rulesState.activeRuleIds = remainingRuleIds;
+
+  // Tick exhausted pieces for the player whose turn just ended
+  if (rulesState.exhaustedPieces && currentPlayer) {
+    if (rulesState.exhaustedPieces[currentPlayer]) {
+      rulesState.exhaustedPieces[currentPlayer] = rulesState.exhaustedPieces[currentPlayer].filter(p => {
+        p.remaining -= 1;
+        return p.remaining > 0;
+      });
+    }
+  }
+
+  // Tick frozen pieces for the player whose turn just ended
+  if (rulesState.frozenPieces && currentPlayer) {
+    if (rulesState.frozenPieces[currentPlayer]) {
+      rulesState.frozenPieces[currentPlayer].remaining -= 1;
+      if (rulesState.frozenPieces[currentPlayer].remaining <= 0) {
+        rulesState.frozenPieces[currentPlayer] = null;
+      }
+    }
+  }
 }

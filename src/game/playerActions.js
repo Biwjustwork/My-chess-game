@@ -125,7 +125,7 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
 
   applyPostMoveEffects(moveResult, G.rulesEngine, chess);
 
-  if (G.rulesEngine.activeModifiers.explosiveCaptures && moveResult.captured) {
+  if (G.rulesEngine.explodedThisTurn) {
     G.explosionSquares = getExplosionSquares(to);
   } else {
     G.explosionSquares = [];
@@ -172,7 +172,7 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
 
   G.currentPlayer = chess.turn();
 
-  tickTurnCounter(G.rulesEngine);
+  tickTurnCounter(G.rulesEngine, currentColor);
   G.newRuleDrawn = null;
 
   if (shouldDrawNewRule(G.turnCount)) {
@@ -194,6 +194,7 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
   if (!G.rulesEngine.pendingSecondMove) return;
 
   const chess = new Chess(G.fen);
+  const currentColor = G.currentPlayer;
   const piece = chess.get(from);
   if (!piece || piece.type !== 'n') return;
 
@@ -204,6 +205,11 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
     const capturedColor = G.currentPlayer === 'w' ? 'b' : 'w';
     G.capturedPieces[capturedColor].push(moveResult.captured);
   }
+
+  if (!G.rulesEngine.exhaustedPieces) {
+    G.rulesEngine.exhaustedPieces = { w: [], b: [] };
+  }
+  G.rulesEngine.exhaustedPieces[G.currentPlayer].push({ square: to, remaining: 2 });
 
   G.rulesEngine.pendingSecondMove = null;
 
@@ -228,7 +234,7 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
   }
 
   G.currentPlayer = chess.turn();
-  tickTurnCounter(G.rulesEngine);
+  tickTurnCounter(G.rulesEngine, currentColor);
   G.newRuleDrawn = null;
 
   if (shouldDrawNewRule(G.turnCount)) {
@@ -250,11 +256,53 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   if (!G.rulesEngine.activeModifiers.teleportation) return;
 
   const chess = new Chess(G.fen);
-  if (!isValidTeleportation(from, to, chess, G.currentPlayer)) return;
+  const currentColor = G.currentPlayer;
+
+  if (to === 'random') {
+    const validSquares = [];
+    for (let r = 1; r <= 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const sq = String.fromCharCode(97 + c) + r;
+        if (sq !== from) {
+          const targetPiece = chess.get(sq);
+          if (!targetPiece || (targetPiece.color !== G.currentPlayer && targetPiece.type !== 'k')) {
+            const tempChess = new Chess(chess.fen());
+            const piece = tempChess.get(from);
+            tempChess.remove(from);
+            if (targetPiece) tempChess.remove(sq);
+            tempChess.put(piece, sq);
+            if (!tempChess.isCheck()) {
+              validSquares.push(sq);
+            }
+          }
+        }
+      }
+    }
+    if (validSquares.length === 0) return;
+    to = validSquares[Math.floor(Math.random() * validSquares.length)];
+  } else {
+    if (!isValidTeleportation(from, to, chess, G.currentPlayer)) return;
+  }
+
+  const targetPiece = chess.get(to);
+  if (targetPiece) {
+    const capturedColor = G.currentPlayer === 'w' ? 'b' : 'w';
+    G.capturedPieces[capturedColor].push(targetPiece.type);
+    chess.remove(to);
+  }
 
   const piece = chess.get(from);
   chess.remove(from);
   chess.put(piece, to);
+
+  if (targetPiece) {
+    applyPostMoveEffects({ from, to, piece: piece.type, color: piece.color, captured: targetPiece.type, flags: 'x' }, G.rulesEngine, chess);
+    if (G.rulesEngine.explodedThisTurn) {
+      G.explosionSquares = getExplosionSquares(to);
+    }
+  } else {
+    G.explosionSquares = [];
+  }
 
   const tokens = chess.fen().split(' ');
   tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
@@ -274,7 +322,7 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   G.currentPlayer = chess.turn();
   G.rulesEngine.teleportMode = false;
 
-  tickTurnCounter(G.rulesEngine);
+  tickTurnCounter(G.rulesEngine, currentColor);
   G.newRuleDrawn = null;
 
   if (shouldDrawNewRule(G.turnCount)) {
@@ -306,7 +354,7 @@ export const selectDraftedRule = ({ G, events }, ruleId) => {
   if (!G.isDraftingRule) return;
   const draftedRule = G.draftedRules.find(r => r.id === ruleId);
   const duration = draftedRule ? draftedRule.duration : undefined;
-  applyRule(G.rulesEngine, ruleId, duration);
+  applyRule(G.rulesEngine, ruleId, duration, G);
   G.draftedRules = [];
   G.isDraftingRule = false;
 };

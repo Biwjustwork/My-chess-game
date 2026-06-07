@@ -12,6 +12,8 @@ export default function Square({
   isValidMove,
   isLastMove,
   isExplosion,
+  isFrozen,
+  isExhausted,
   isCurrentPlayerPiece,
   onSquareClick,
   onDrop,
@@ -38,6 +40,8 @@ export default function Square({
   if (isSelected) className += ' square-selected';
   if (isLastMove) className += ' square-last-move';
   if (isExplosion) className += ' square-explosion';
+  if (isFrozen) className += ' square-frozen';
+  if (isExhausted) className += ' square-exhausted';
 
   return (
     <div
@@ -49,9 +53,11 @@ export default function Square({
         outlineOffset: '-3px',
       }}
     >
-      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece} />}
+      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece && !isFrozen && !isExhausted} />}
       {isValidMove && !piece && <div className="valid-move-dot" />}
       {hasCapture && <div className="valid-capture-ring" />}
+      {isFrozen && <div className="frozen-overlay">❄️</div>}
+      {isExhausted && <div className="exhausted-overlay">💤</div>}
     </div>
   );
 }

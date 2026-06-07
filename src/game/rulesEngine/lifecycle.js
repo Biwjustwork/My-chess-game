@@ -20,6 +20,22 @@ export function validateMoveWithRules(move, rulesState, chess) {
     }
   }
 
+  // Freeze: Frozen pieces cannot move
+  if (rulesState.frozenPieces) {
+    const frozen = rulesState.frozenPieces[move.color];
+    if (frozen && frozen.square === move.from) {
+      return { valid: false, reason: 'This piece is frozen in ice and cannot move!' };
+    }
+  }
+
+  // Exhaustion: Exhausted pieces cannot move
+  if (rulesState.exhaustedPieces) {
+    const exhausted = rulesState.exhaustedPieces[move.color] || [];
+    if (exhausted.some(p => p.square === move.from)) {
+      return { valid: false, reason: 'This piece is exhausted and cannot move this turn.' };
+    }
+  }
+
   // Permanent rule: Cannot make a move that leaves own King in check
   try {
     const tempChess = new Chess(chess.fen());
@@ -84,16 +100,28 @@ export function getExtraMovesFromRules(square, rulesState, chess) {
  */
 export function applyPostMoveEffects(move, rulesState, chess) {
   const modifiers = rulesState.activeModifiers || {};
+  rulesState.explodedThisTurn = false;
 
   // Explosive Captures: clear 3x3 grid around captured square
   if (modifiers.explosiveCaptures && move.captured) {
-    const rule = getRuleById('explosive_captures');
-    if (rule) {
-      const affectedSquares = rule.getExplosionSquares(move.to);
-      for (const sq of affectedSquares) {
-        const piece = chess.get(sq);
-        if (piece && piece.type !== 'k') {
-          chess.remove(sq);
+    if (!rulesState.explosiveUsed || !rulesState.explosiveUsed[move.color]) {
+      if (!rulesState.explosiveUsed) rulesState.explosiveUsed = { w: false, b: false };
+      rulesState.explosiveUsed[move.color] = true;
+      rulesState.explodedThisTurn = true;
+
+      const rule = getRuleById('explosive_captures');
+      if (rule) {
+        const affectedSquares = rule.getExplosionSquares(move.to);
+        for (const sq of affectedSquares) {
+          const piece = chess.get(sq);
+          if (piece && piece.type !== 'k') {
+            chess.remove(sq);
+          }
+        }
+        // Kamikaze
+        const capturingPiece = chess.get(move.to);
+        if (capturingPiece && capturingPiece.type !== 'k') {
+          chess.remove(move.to);
         }
       }
     }
