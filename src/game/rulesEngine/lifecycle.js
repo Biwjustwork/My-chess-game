@@ -19,6 +19,22 @@ export function validateMoveWithRules(move, rulesState, chess) {
     }
   }
 
+  // Permanent rule: Cannot make a move that leaves own King in check
+  try {
+    const tempChess = new Chess(chess.fen());
+    const pieceObj = tempChess.get(move.from);
+    if (pieceObj) {
+      tempChess.remove(move.from);
+      if (move.captured) tempChess.remove(move.to);
+      if (move.to) tempChess.put(pieceObj, move.to);
+      if (tempChess.isCheck()) {
+        return { valid: false, reason: 'Cannot move into check.' };
+      }
+    }
+  } catch (e) {
+    console.error('Validation error checking check state:', e);
+  }
+
   return { valid: true, reason: null };
 }
 
@@ -97,5 +113,18 @@ export function isValidTeleportation(from, to, chess, currentPlayer) {
   if (piece.color !== currentPlayer) return false;
   const target = chess.get(to);
   if (target) return false;
+
+  // Permanent rule: Teleportation cannot leave the King in check
+  try {
+    const tempChess = new Chess(chess.fen());
+    tempChess.remove(from);
+    tempChess.put(piece, to);
+    if (tempChess.isCheck()) {
+      return false;
+    }
+  } catch (e) {
+    console.error('Teleportation validation error checking check state:', e);
+  }
+
   return true;
 }

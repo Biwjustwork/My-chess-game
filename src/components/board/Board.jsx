@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Chess } from 'chess.js';
 import Square from './Square';
 import { getAllValidMoves } from '../../game/ChaosChessEngine';
+import { isValidTeleportation } from '../../game/rulesEngine';
 
 import WQueen from '../../assets/pieces/w-queen.png';
 import WRook from '../../assets/pieces/w-rook.png';
@@ -38,6 +39,12 @@ export default function Board({ G, moves, reset }) {
     return getAllValidMoves(G, square);
   }, [G]);
 
+  // Clear local selection when teleport mode toggles so UI updates correctly
+  useEffect(() => {
+    setSelectedSquare(null);
+    setValidMoves([]);
+  }, [G.rulesEngine?.teleportMode]);
+
   const handleSquareClick = useCallback((square) => {
     const clickChess = new Chess(G.fen);
     const piece = clickChess.get(square);
@@ -52,12 +59,16 @@ export default function Board({ G, moves, reset }) {
       }
       if (piece && piece.color === currentColor) {
         setSelectedSquare(square);
-        // In teleport mode, all empty squares are valid
+        // In teleport mode, check if the teleportation is valid (e.g. doesn't leave King in check)
         const emptySquares = [];
         for (let r = 0; r < 8; r++) {
           for (let c = 0; c < 8; c++) {
             const sq = String.fromCharCode(97 + c) + (8 - r);
-            if (!clickChess.get(sq)) emptySquares.push({ from: square, to: sq });
+            if (!clickChess.get(sq)) {
+              if (isValidTeleportation(square, sq, clickChess, currentColor)) {
+                emptySquares.push({ from: square, to: sq });
+              }
+            }
           }
         }
         setValidMoves(emptySquares);

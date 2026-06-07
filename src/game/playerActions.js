@@ -256,6 +256,14 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   chess.remove(from);
   chess.put(piece, to);
 
+  const tokens = chess.fen().split(' ');
+  tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
+  if (tokens[1] === 'w') {
+    tokens[5] = String(parseInt(tokens[5], 10) + 1);
+  }
+  tokens[3] = '-';
+  chess.load(tokens.join(' '));
+
   G.fen = chess.fen();
   G.board = chess.board();
   G.lastMove = { from, to };
@@ -263,7 +271,7 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   G.validMoves = [];
   G.moveHistory.push({ from, to, piece: piece.type, color: piece.color, flags: 'teleport' });
   G.turnCount += 1;
-  G.currentPlayer = G.currentPlayer === 'w' ? 'b' : 'w';
+  G.currentPlayer = chess.turn();
   G.rulesEngine.teleportMode = false;
 
   tickTurnCounter(G.rulesEngine);
