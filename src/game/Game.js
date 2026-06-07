@@ -9,7 +9,8 @@ import { Chess } from 'chess.js';
 import {
   initRulesEngine,
   shouldDrawNewRule,
-  drawNewRule,
+  draftRules,
+  applyRule,
   tickTurnCounter,
   validateMoveWithRules,
   getExtraMovesFromRules,
@@ -58,6 +59,8 @@ function setupGame() {
     capturedPieces: { w: [], b: [] },
     moveHistory: [],
     newRuleDrawn: null,     // Set when a new rule is drawn, cleared after display
+    isDraftingRule: false,
+    draftedRules: [],
     isPromoting: false,
     promotionMove: null,
     selectedSquare: null,
@@ -108,6 +111,7 @@ const ChaosChess = {
      * Select a square on the board
      */
     selectSquare: ({ G, playerID }, square) => {
+      if (G.isDraftingRule) return; // Block selecting square while drafting
       const chess = new Chess(G.fen);
       const currentColor = G.currentPlayer;
       const piece = chess.get(square);
@@ -133,6 +137,7 @@ const ChaosChess = {
      * Make a chess move
      */
     makeMove: ({ G, ctx, events }, from, to, promotion) => {
+      if (G.isDraftingRule) return; // Block making moves while drafting
       const chess = new Chess(G.fen);
       const currentColor = G.currentPlayer;
       const piece = chess.get(from);
@@ -268,7 +273,8 @@ const ChaosChess = {
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        G.newRuleDrawn = drawNewRule(G.rulesEngine);
+        G.draftedRules = draftRules(G.rulesEngine);
+        G.isDraftingRule = true;
       }
 
       // End turn
@@ -327,7 +333,8 @@ const ChaosChess = {
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        G.newRuleDrawn = drawNewRule(G.rulesEngine);
+        G.draftedRules = draftRules(G.rulesEngine);
+        G.isDraftingRule = true;
       }
 
       if (G.gameStatus === 'checkmate' || G.gameStatus === 'draw' || G.gameStatus === 'stalemate') {
@@ -365,7 +372,8 @@ const ChaosChess = {
       G.newRuleDrawn = null;
 
       if (shouldDrawNewRule(G.turnCount)) {
-        G.newRuleDrawn = drawNewRule(G.rulesEngine);
+        G.draftedRules = draftRules(G.rulesEngine);
+        G.isDraftingRule = true;
       }
 
       events.endTurn();
@@ -391,6 +399,16 @@ const ChaosChess = {
       G.isPromoting = false;
       G.promotionMove = null;
       // This will be handled by the UI calling makeMove with promotion
+    },
+
+    /**
+     * Select a drafted rule
+     */
+    selectDraftedRule: ({ G, events }, ruleId) => {
+      if (!G.isDraftingRule) return;
+      applyRule(G.rulesEngine, ruleId);
+      G.draftedRules = [];
+      G.isDraftingRule = false;
     },
 
     /**

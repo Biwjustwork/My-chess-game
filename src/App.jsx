@@ -10,35 +10,16 @@ import Board from './components/Board';
 import RuleCard from './components/RuleCard';
 import TurnCounter from './components/TurnCounter';
 import GameStatus from './components/GameStatus';
-import NewRulePopup from './components/NewRulePopup';
+import RuleDraftModal from './components/RuleDraftModal';
 import { getActiveRulesInfo } from './game/RulesEngine';
 
 /**
  * The main board component receives boardgame.io props
  */
 function ChaosChessBoard({ G, ctx, moves }) {
-  const [showNewRule, setShowNewRule] = useState(null);
-
-  // Detect when a new rule is drawn
-  // We track it locally to show the popup
-  const handleNewRule = useCallback(() => {
-    if (G.newRuleDrawn && (!showNewRule || showNewRule.id !== G.newRuleDrawn.id)) {
-      setShowNewRule(G.newRuleDrawn);
-    }
-  }, [G.newRuleDrawn, showNewRule]);
-
-  // Trigger check on render
-  if (G.newRuleDrawn && (!showNewRule || showNewRule.id !== G.newRuleDrawn.id)) {
-    // Use setTimeout to avoid setting state during render
-    setTimeout(() => setShowNewRule(G.newRuleDrawn), 0);
-  }
-
-  const dismissPopup = useCallback(() => {
-    setShowNewRule(null);
-    if (G.newRuleDrawn) {
-      moves.clearNewRule();
-    }
-  }, [moves, G.newRuleDrawn]);
+  const handleSelectDraftedRule = (ruleId) => {
+    moves.selectDraftedRule(ruleId);
+  };
 
   return (
     <div className="app-container">
@@ -68,9 +49,12 @@ function ChaosChessBoard({ G, ctx, moves }) {
         </div>
       </div>
 
-      {/* New Rule Popup */}
-      {showNewRule && (
-        <NewRulePopup rule={showNewRule} onDismiss={dismissPopup} />
+      {/* Rule Drafting Modal */}
+      {G.isDraftingRule && (
+        <RuleDraftModal 
+          draftedRules={G.draftedRules} 
+          onSelectRule={handleSelectDraftedRule} 
+        />
       )}
     </div>
   );

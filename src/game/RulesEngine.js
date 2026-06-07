@@ -47,14 +47,39 @@ export function shouldDrawNewRule(turnCount) {
 }
 
 /**
- * Draw a new random rule and add it to the active rules.
- * Mutates rulesState directly (Immer-compatible).
- * Returns serializable rule info for the popup.
+ * Draft 3 new random rules.
+ * Does not mutate rulesState (except we don't apply modifiers yet).
+ * Returns array of serializable rule info for the popup.
  */
-export function drawNewRule(rulesState) {
-  const newRule = getRandomRule([...rulesState.activeRuleIds]);
+export function draftRules(rulesState) {
+  const drafted = [];
+  const excludeIds = [...rulesState.activeRuleIds];
+  
+  for (let i = 0; i < 3; i++) {
+    const newRule = getRandomRule(excludeIds);
+    if (!newRule) break;
+    drafted.push({
+      id: newRule.id,
+      name: newRule.name,
+      description: newRule.description,
+      type: newRule.type,
+      icon: newRule.icon,
+    });
+    if (!excludeIds.includes(newRule.id)) {
+      excludeIds.push(newRule.id);
+    }
+  }
+  return drafted;
+}
 
-  // Each rule sets a specific modifier key
+/**
+ * Apply a selected drafted rule.
+ * Mutates rulesState directly (Immer-compatible).
+ */
+export function applyRule(rulesState, ruleId) {
+  const rule = getRuleById(ruleId);
+  if (!rule) return;
+
   const modifierKeys = {
     reverse_pawns: 'reversePawns',
     explosive_captures: 'explosiveCaptures',
@@ -65,23 +90,14 @@ export function drawNewRule(rulesState) {
     bishop_surge: 'bishopSurge',
     phantom_rook: 'phantomRook',
   };
-  const modKey = modifierKeys[newRule.id];
+  const modKey = modifierKeys[ruleId];
   if (modKey) {
     rulesState.activeModifiers[modKey] = true;
   }
 
-  rulesState.activeRuleIds.push(newRule.id);
-  rulesState.ruleHistory.push({ ruleId: newRule.id, drawnAtTurn: rulesState.turnsUntilNextRule });
+  rulesState.activeRuleIds.push(ruleId);
+  rulesState.ruleHistory.push({ ruleId, drawnAtTurn: rulesState.turnsUntilNextRule });
   rulesState.turnsUntilNextRule = TURNS_PER_RULE_CHANGE;
-
-  // Return serializable rule info for the popup (no functions)
-  return {
-    id: newRule.id,
-    name: newRule.name,
-    description: newRule.description,
-    type: newRule.type,
-    icon: newRule.icon,
-  };
 }
 
 /**
