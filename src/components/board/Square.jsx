@@ -53,7 +53,7 @@ export default function Square({
         outlineOffset: '-3px',
       }}
     >
-      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece && !isFrozen && !isExhausted} />}
+      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece && !isFrozen && !isExhausted} isSelected={isSelected} />}
       {isValidMove && !piece && <div className="valid-move-dot" />}
       {hasCapture && <div className="valid-capture-ring" />}
       {isFrozen && <div className="frozen-overlay">❄️</div>}

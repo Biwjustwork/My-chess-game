@@ -80,8 +80,10 @@ export function draftRules(rulesState) {
     const newRule = getRandomRule(excludeIds);
     if (!newRule) break;
     
-    // Set random duration between 1 and 8 turns during drafting so UI can display it
-    const duration = Math.floor(Math.random() * 8) + 1;
+    let duration = Math.floor(Math.random() * 8) + 1;
+    if (newRule.id === 'freeze') {
+      duration = Math.floor(Math.random() * 3) + 2;
+    }
     
     drafted.push({
       id: newRule.id,
@@ -115,6 +117,12 @@ export function applyRule(rulesState, ruleId, duration, G) {
     rulesState.explosiveUsed = { w: false, b: false };
   }
 
+  // Use the provided duration, or default to random if not supplied
+  let finalDuration = duration !== undefined ? duration : (Math.floor(Math.random() * 8) + 1);
+  if (ruleId === 'freeze' && duration === undefined) {
+    finalDuration = Math.floor(Math.random() * 3) + 2;
+  }
+
   if (ruleId === 'freeze' && G && G.board) {
     const wPieces = [];
     const bPieces = [];
@@ -132,19 +140,17 @@ export function applyRule(rulesState, ruleId, duration, G) {
     if (wPieces.length > 0) {
       rulesState.frozenPieces.w = {
         square: wPieces[Math.floor(Math.random() * wPieces.length)],
-        remaining: Math.floor(Math.random() * 3) + 1
+        remaining: finalDuration
       };
     }
     if (bPieces.length > 0) {
       rulesState.frozenPieces.b = {
         square: bPieces[Math.floor(Math.random() * bPieces.length)],
-        remaining: Math.floor(Math.random() * 3) + 1
+        remaining: finalDuration
       };
     }
   }
 
-  // Use the provided duration, or default to random if not supplied
-  const finalDuration = duration !== undefined ? duration : (Math.floor(Math.random() * 8) + 1);
   rulesState.ruleDurations[ruleId] = finalDuration;
 
   if (!rulesState.activeRuleIds.includes(ruleId)) {
