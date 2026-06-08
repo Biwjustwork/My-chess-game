@@ -14,6 +14,7 @@ export default function Square({
   isExplosion,
   isFrozen,
   isExhausted,
+  isBetrayed,
   isCurrentPlayerPiece,
   onSquareClick,
   onDrop,
@@ -42,6 +43,7 @@ export default function Square({
   if (isExplosion) className += ' square-explosion';
   if (isFrozen) className += ' square-frozen';
   if (isExhausted) className += ' square-exhausted';
+  if (isBetrayed) className += ' square-betrayed';
 
   return (
     <div
@@ -58,6 +60,7 @@ export default function Square({
       {hasCapture && <div className="valid-capture-ring" />}
       {isFrozen && <div className="frozen-overlay">❄️</div>}
       {isExhausted && <div className="exhausted-overlay">💤</div>}
+      {isBetrayed && <div className="betrayal-overlay">🎭</div>}
     </div>
   );
 }

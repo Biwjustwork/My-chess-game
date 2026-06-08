@@ -188,6 +188,7 @@ export default function Board({ G, moves, reset }) {
                     isExplosion={isSquareExplosion(square)}
                     isFrozen={isSquareFrozen(square)}
                     isExhausted={isSquareExhausted(square)}
+                    isBetrayed={G.rulesEngine?.betrayedPiece?.square === square}
                     isCurrentPlayerPiece={piece && piece.color === currentColor}
                     onSquareClick={handleSquareClick}
                     onDrop={handleDrop}

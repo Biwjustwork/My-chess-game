@@ -43,4 +43,19 @@ export const specialRules = [
       return { ...gameState, activeModifiers: rest };
     },
   },
+  {
+    id: 'betrayal',
+    name: 'Betrayal (การสลับฝั่ง)',
+    description: 'Take control of a random enemy minor piece (Pawn, Knight, or Bishop) for 3 turns. When it expires, it reverts back!',
+    type: RULE_TYPES.SPECIAL,
+    icon: '🎭',
+    affectedPieces: ['p', 'n', 'b'],
+    apply: (gameState) => {
+      return { ...gameState, activeModifiers: { ...gameState.activeModifiers, betrayal: true } };
+    },
+    revert: (gameState) => {
+      const { betrayal, ...rest } = gameState.activeModifiers;
+      return { ...gameState, activeModifiers: rest };
+    },
+  },
 ];

@@ -13,6 +13,24 @@ import {
 import { sanitizeMove, getAllValidMoves } from './chessMoveHelpers';
 import { setupGame } from './initialGameState';
 
+const trackBetrayedPiece = (G, from, to) => {
+  if (G.rulesEngine.betrayedPiece) {
+    if (G.rulesEngine.betrayedPiece.square === to) {
+      G.rulesEngine.betrayedPiece = null;
+    } else if (G.rulesEngine.betrayedPiece.square === from) {
+      G.rulesEngine.betrayedPiece.square = to;
+    }
+  }
+};
+
+const verifyBetrayedPieceAfterExplosions = (G) => {
+  if (G.rulesEngine.explodedThisTurn && G.explosionSquares && G.rulesEngine.betrayedPiece) {
+    if (G.explosionSquares.includes(G.rulesEngine.betrayedPiece.square)) {
+      G.rulesEngine.betrayedPiece = null;
+    }
+  }
+};
+
 export const selectSquare = ({ G, playerID }, square) => {
   if (G.isDraftingRule) return;
 
@@ -130,6 +148,9 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
   } else {
     G.explosionSquares = [];
   }
+  
+  trackBetrayedPiece(G, moveResult.from, moveResult.to);
+  verifyBetrayedPieceAfterExplosions(G);
 
   if (G.rulesEngine.pendingSecondMove) {
     const tokens = chess.fen().split(' ');
@@ -172,7 +193,18 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
 
   G.currentPlayer = chess.turn();
 
-  tickTurnCounter(G.rulesEngine, currentColor);
+  tickTurnCounter(G.rulesEngine, currentColor, G);
+  
+  if (G.rulesEngine.betrayedPieceJustExpired) {
+    const freshChess = new Chess(G.fen);
+    if (freshChess.isCheckmate()) G.gameStatus = 'checkmate';
+    else if (freshChess.isCheck()) G.gameStatus = 'check';
+    else if (freshChess.isDraw()) G.gameStatus = 'draw';
+    else if (freshChess.isStalemate()) G.gameStatus = 'stalemate';
+    else G.gameStatus = 'playing';
+    G.currentPlayer = freshChess.turn();
+  }
+
   G.newRuleDrawn = null;
 
   if (shouldDrawNewRule(G.turnCount)) {
@@ -212,6 +244,8 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
   G.rulesEngine.exhaustedPieces[G.currentPlayer].push({ square: to, remaining: 2 });
 
   G.rulesEngine.pendingSecondMove = null;
+  
+  trackBetrayedPiece(G, moveResult.from, moveResult.to);
 
   G.fen = chess.fen();
   G.board = chess.board();
@@ -234,7 +268,18 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
   }
 
   G.currentPlayer = chess.turn();
-  tickTurnCounter(G.rulesEngine, currentColor);
+  tickTurnCounter(G.rulesEngine, currentColor, G);
+  
+  if (G.rulesEngine.betrayedPieceJustExpired) {
+    const freshChess = new Chess(G.fen);
+    if (freshChess.isCheckmate()) G.gameStatus = 'checkmate';
+    else if (freshChess.isCheck()) G.gameStatus = 'check';
+    else if (freshChess.isDraw()) G.gameStatus = 'draw';
+    else if (freshChess.isStalemate()) G.gameStatus = 'stalemate';
+    else G.gameStatus = 'playing';
+    G.currentPlayer = freshChess.turn();
+  }
+
   G.newRuleDrawn = null;
 
   if (shouldDrawNewRule(G.turnCount)) {
@@ -311,6 +356,9 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   }
   tokens[3] = '-';
   chess.load(tokens.join(' '));
+  
+  trackBetrayedPiece(G, from, to);
+  verifyBetrayedPieceAfterExplosions(G);
 
   G.fen = chess.fen();
   G.board = chess.board();
@@ -322,7 +370,18 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   G.currentPlayer = chess.turn();
   G.rulesEngine.teleportMode = false;
 
-  tickTurnCounter(G.rulesEngine, currentColor);
+  tickTurnCounter(G.rulesEngine, currentColor, G);
+  
+  if (G.rulesEngine.betrayedPieceJustExpired) {
+    const freshChess = new Chess(G.fen);
+    if (freshChess.isCheckmate()) G.gameStatus = 'checkmate';
+    else if (freshChess.isCheck()) G.gameStatus = 'check';
+    else if (freshChess.isDraw()) G.gameStatus = 'draw';
+    else if (freshChess.isStalemate()) G.gameStatus = 'stalemate';
+    else G.gameStatus = 'playing';
+    G.currentPlayer = freshChess.turn();
+  }
+
   G.newRuleDrawn = null;
 
   if (shouldDrawNewRule(G.turnCount)) {

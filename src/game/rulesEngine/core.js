@@ -7,6 +7,7 @@
  * flags — never function references.
  */
 
+import { Chess } from 'chess.js';
 import rulePool from '../../rules/rulePool';
 import { getRandomRule } from '../../utils/ruleManager';
 
@@ -32,6 +33,7 @@ export const MODIFIER_KEYS = {
   bishop_surge: 'bishopSurge',
   phantom_rook: 'phantomRook',
   freeze: 'freeze',
+  betrayal: 'betrayal',
 };
 
 /**
@@ -57,6 +59,8 @@ export function initRulesEngine() {
     explodedThisTurn: false,
     exhaustedPieces: { w: [], b: [] },
     frozenPieces: { w: null, b: null },
+    betrayedPiece: null,
+    betrayedPieceJustExpired: false,
   };
 }
 
@@ -82,7 +86,9 @@ export function draftRules(rulesState) {
     
     let duration = Math.floor(Math.random() * 8) + 1;
     if (newRule.id === 'freeze') {
-      duration = Math.floor(Math.random() * 3) + 2;
+      duration = Math.floor(Math.random() * 3) + 1;
+    } else if (newRule.id === 'betrayal') {
+      duration = 3;
     }
     
     drafted.push({
@@ -120,7 +126,40 @@ export function applyRule(rulesState, ruleId, duration, G) {
   // Use the provided duration, or default to random if not supplied
   let finalDuration = duration !== undefined ? duration : (Math.floor(Math.random() * 8) + 1);
   if (ruleId === 'freeze' && duration === undefined) {
-    finalDuration = Math.floor(Math.random() * 3) + 2;
+    finalDuration = Math.floor(Math.random() * 3) + 1;
+  } else if (ruleId === 'betrayal' && duration === undefined) {
+    finalDuration = 3;
+  }
+
+  rulesState.betrayedPieceJustExpired = false;
+
+  if (ruleId === 'betrayal' && G && G.board) {
+    const enemyColor = G.currentPlayer === 'w' ? 'b' : 'w';
+    const targets = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = G.board[r][c];
+        if (piece && piece.color === enemyColor && ['p', 'n', 'b'].includes(piece.type)) {
+          targets.push(String.fromCharCode(97 + c) + (8 - r));
+        }
+      }
+    }
+    if (targets.length > 0) {
+      const targetSq = targets[Math.floor(Math.random() * targets.length)];
+      const tempChess = new Chess(G.fen);
+      const piece = tempChess.get(targetSq);
+      tempChess.remove(targetSq);
+      tempChess.put({ type: piece.type, color: G.currentPlayer }, targetSq);
+      
+      rulesState.betrayedPiece = {
+        square: targetSq,
+        originalColor: piece.color,
+        type: piece.type
+      };
+      
+      G.fen = tempChess.fen();
+      G.board = tempChess.board();
+    }
   }
 
   if (ruleId === 'freeze' && G && G.board) {
@@ -164,7 +203,7 @@ export function applyRule(rulesState, ruleId, duration, G) {
  * Decrement the turn counter toward the next rule.
  * Mutates rulesState directly (Immer-compatible).
  */
-export function tickTurnCounter(rulesState, currentPlayer) {
+export function tickTurnCounter(rulesState, currentPlayer, G) {
   rulesState.turnsUntilNextRule -= 1;
 
   // Decrease duration of active rules and expire them if they reach 0
@@ -187,6 +226,25 @@ export function tickTurnCounter(rulesState, currentPlayer) {
       }
       if (ruleId === 'freeze') {
         rulesState.frozenPieces = { w: null, b: null };
+      }
+      if (ruleId === 'betrayal') {
+        if (rulesState.betrayedPiece && G) {
+          try {
+            const tempChess = new Chess(G.fen);
+            const sq = rulesState.betrayedPiece.square;
+            const piece = tempChess.get(sq);
+            if (piece && piece.color === currentPlayer) {
+              tempChess.remove(sq);
+              tempChess.put({ type: piece.type, color: rulesState.betrayedPiece.originalColor }, sq);
+              G.fen = tempChess.fen();
+              G.board = tempChess.board();
+              rulesState.betrayedPieceJustExpired = true;
+            }
+          } catch (e) {
+            console.error('Error reverting betrayal:', e);
+          }
+        }
+        rulesState.betrayedPiece = null;
       }
     } else {
       remainingRuleIds.push(ruleId);
