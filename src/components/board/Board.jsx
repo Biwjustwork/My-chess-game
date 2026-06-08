@@ -234,6 +234,13 @@ export default function Board({ G, moves, reset }) {
             🐴 Knight's Frenzy — Move your Knight again!
           </div>
         )}
+
+        {/* Chaos Escape Hint */}
+        {G.gameStatus === 'check' && G.chaosEscapeAvailable && (
+          <div className="chaos-escape-hint">
+            <strong>CHECK!</strong> คุณยังมีทางรอดด้วยกฎพิเศษอยู่นะ!
+          </div>
+        )}
       </div>
 
       {/* Promotion Dialog */}

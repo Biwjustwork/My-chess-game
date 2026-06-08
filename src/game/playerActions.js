@@ -13,6 +13,78 @@ import {
 import { sanitizeMove, getAllValidMoves } from './chessMoveHelpers';
 import { setupGame } from './initialGameState';
 
+export const evaluateGameStatus = (G, chess) => {
+  let hasAnyValidMove = false;
+  const currentPlayer = chess.turn();
+  const board = chess.board();
+
+  if (G.rulesEngine.activeModifiers.teleportation) {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = board[r][c];
+        if (piece && piece.color === currentPlayer) {
+          const fromSq = String.fromCharCode(97 + c) + (8 - r);
+          for (let tr = 1; tr <= 8; tr++) {
+             for (let tc = 0; tc < 8; tc++) {
+                const toSq = String.fromCharCode(97 + tc) + tr;
+                if (fromSq !== toSq) {
+                  const targetPiece = chess.get(toSq);
+                  if (!targetPiece || (targetPiece.color !== currentPlayer && targetPiece.type !== 'k')) {
+                    const tempChess = new Chess(chess.fen());
+                    const pieceToMove = tempChess.get(fromSq);
+                    tempChess.remove(fromSq);
+                    if (targetPiece) tempChess.remove(toSq);
+                    tempChess.put(pieceToMove, toSq);
+                    if (!tempChess.isCheck()) {
+                       hasAnyValidMove = true;
+                       break;
+                    }
+                  }
+                }
+             }
+             if (hasAnyValidMove) break;
+          }
+        }
+        if (hasAnyValidMove) break;
+      }
+      if (hasAnyValidMove) break;
+    }
+  }
+
+  if (!hasAnyValidMove) {
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = board[r][c];
+        if (piece && piece.color === currentPlayer) {
+          const sq = String.fromCharCode(97 + c) + (8 - r);
+          const moves = getAllValidMoves(G, sq);
+          if (moves.length > 0) {
+            hasAnyValidMove = true;
+            break;
+          }
+        }
+      }
+      if (hasAnyValidMove) break;
+    }
+  }
+
+  const isCheck = chess.isCheck();
+
+  if (!hasAnyValidMove) {
+    if (isCheck) return { status: 'checkmate', chaosEscapeAvailable: false };
+    else return { status: 'stalemate', chaosEscapeAvailable: false };
+  } else {
+    if (isCheck && chess.isCheckmate()) {
+       return { status: 'check', chaosEscapeAvailable: true };
+    }
+    if (isCheck) {
+       return { status: 'check', chaosEscapeAvailable: false };
+    }
+    return { status: 'playing', chaosEscapeAvailable: false };
+  }
+};
+
+
 const trackBetrayedPiece = (G, from, to) => {
   if (G.rulesEngine.betrayedPiece) {
     if (G.rulesEngine.betrayedPiece.square === to) {
@@ -179,17 +251,9 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
   G.isPromoting = false;
   G.promotionMove = null;
 
-  if (chess.isCheckmate()) {
-    G.gameStatus = 'checkmate';
-  } else if (chess.isCheck()) {
-    G.gameStatus = 'check';
-  } else if (chess.isDraw()) {
-    G.gameStatus = 'draw';
-  } else if (chess.isStalemate()) {
-    G.gameStatus = 'stalemate';
-  } else {
-    G.gameStatus = 'playing';
-  }
+  const gameEval = evaluateGameStatus(G, chess);
+  G.gameStatus = gameEval.status;
+  G.chaosEscapeAvailable = gameEval.chaosEscapeAvailable;
 
   G.currentPlayer = chess.turn();
 
@@ -197,11 +261,9 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
   
   if (G.rulesEngine.betrayedPieceJustExpired) {
     const freshChess = new Chess(G.fen);
-    if (freshChess.isCheckmate()) G.gameStatus = 'checkmate';
-    else if (freshChess.isCheck()) G.gameStatus = 'check';
-    else if (freshChess.isDraw()) G.gameStatus = 'draw';
-    else if (freshChess.isStalemate()) G.gameStatus = 'stalemate';
-    else G.gameStatus = 'playing';
+    const freshEval = evaluateGameStatus(G, freshChess);
+    G.gameStatus = freshEval.status;
+    G.chaosEscapeAvailable = freshEval.chaosEscapeAvailable;
     G.currentPlayer = freshChess.turn();
   }
 
@@ -255,28 +317,18 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
   G.moveHistory.push(moveResult);
   G.turnCount += 1;
 
-  if (chess.isCheckmate()) {
-    G.gameStatus = 'checkmate';
-  } else if (chess.isCheck()) {
-    G.gameStatus = 'check';
-  } else if (chess.isDraw()) {
-    G.gameStatus = 'draw';
-  } else if (chess.isStalemate()) {
-    G.gameStatus = 'stalemate';
-  } else {
-    G.gameStatus = 'playing';
-  }
+  const gameEval = evaluateGameStatus(G, chess);
+  G.gameStatus = gameEval.status;
+  G.chaosEscapeAvailable = gameEval.chaosEscapeAvailable;
 
   G.currentPlayer = chess.turn();
   tickTurnCounter(G.rulesEngine, currentColor, G);
   
   if (G.rulesEngine.betrayedPieceJustExpired) {
     const freshChess = new Chess(G.fen);
-    if (freshChess.isCheckmate()) G.gameStatus = 'checkmate';
-    else if (freshChess.isCheck()) G.gameStatus = 'check';
-    else if (freshChess.isDraw()) G.gameStatus = 'draw';
-    else if (freshChess.isStalemate()) G.gameStatus = 'stalemate';
-    else G.gameStatus = 'playing';
+    const freshEval = evaluateGameStatus(G, freshChess);
+    G.gameStatus = freshEval.status;
+    G.chaosEscapeAvailable = freshEval.chaosEscapeAvailable;
     G.currentPlayer = freshChess.turn();
   }
 
@@ -374,11 +426,9 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   
   if (G.rulesEngine.betrayedPieceJustExpired) {
     const freshChess = new Chess(G.fen);
-    if (freshChess.isCheckmate()) G.gameStatus = 'checkmate';
-    else if (freshChess.isCheck()) G.gameStatus = 'check';
-    else if (freshChess.isDraw()) G.gameStatus = 'draw';
-    else if (freshChess.isStalemate()) G.gameStatus = 'stalemate';
-    else G.gameStatus = 'playing';
+    const freshEval = evaluateGameStatus(G, freshChess);
+    G.gameStatus = freshEval.status;
+    G.chaosEscapeAvailable = freshEval.chaosEscapeAvailable;
     G.currentPlayer = freshChess.turn();
   }
 
