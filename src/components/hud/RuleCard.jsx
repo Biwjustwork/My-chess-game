@@ -1,3 +1,4 @@
+import './HUD.css';
 const TYPE_COLORS = {
   MOVEMENT: 'bg-cyan-500/20 text-cyan-400',
   CAPTURE: 'bg-rose-500/20 text-rose-400',

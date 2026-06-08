@@ -14,6 +14,7 @@ import BQueen from '../../assets/pieces/b-queen.png';
 import BRook from '../../assets/pieces/b-rook.png';
 import BBishop from '../../assets/pieces/b-bishop.png';
 import BKnight from '../../assets/pieces/b-knight.png';
+import './Board.css';
 
 const PROMOTION_IMAGES = {
   wq: WQueen, wr: WRook, wb: WBishop, wn: WKnight,

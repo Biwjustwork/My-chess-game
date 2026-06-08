@@ -1,3 +1,4 @@
+import './Overlays.css';
 export default function RuleDraftModal({ draftedRules, onSelectRule }) {
   if (!draftedRules || draftedRules.length === 0) return null;
 

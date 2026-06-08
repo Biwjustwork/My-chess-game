@@ -3,6 +3,7 @@
  */
 
 import { TURNS_PER_RULE_CHANGE } from '../../game/rulesEngine';
+import './HUD.css';
 
 export default function TurnCounter({ turnCount, turnsUntilNextRule, currentPlayer }) {
   const progress = ((TURNS_PER_RULE_CHANGE - turnsUntilNextRule) / TURNS_PER_RULE_CHANGE) * 100;
