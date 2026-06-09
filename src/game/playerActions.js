@@ -419,6 +419,11 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
   G.validMoves = [];
   G.moveHistory.push({ from, to, piece: piece.type, color: piece.color, flags: 'teleport' });
   G.turnCount += 1;
+
+  const gameEval = evaluateGameStatus(G, chess);
+  G.gameStatus = gameEval.status;
+  G.chaosEscapeAvailable = gameEval.chaosEscapeAvailable;
+
   G.currentPlayer = chess.turn();
   G.rulesEngine.teleportMode = false;
 
