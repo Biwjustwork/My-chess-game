@@ -14,8 +14,8 @@
   --accent-rose: #f43f5e;
 
   --text-primary: #f1f5f9;
-  --text-secondary: #ffffff;
-  --text-muted: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
 
   --board-light: #e8d5b5;
   --board-dark: #b58863;
@@ -81,12 +81,7 @@ body {
   font-size: 2.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan), var(--accent-amber));
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: gradient-shift 4s ease-in-out infinite;
+  color: var(--text-primary);
   text-align: center;
 }
 
@@ -123,18 +118,10 @@ body {
 
 /* ===== Glass Card ===== */
 .glass-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  border-radius: 16px;
+  background: rgba(30, 30, 60, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
   padding: 1.25rem;
-  box-shadow: var(--glass-shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.glass-card:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* ===== Animations ===== */
@@ -227,7 +214,7 @@ body {
 
 @media (max-width: 500px) {
   .square {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 }
