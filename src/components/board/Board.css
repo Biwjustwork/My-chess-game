@@ -335,3 +335,83 @@
     opacity: 0;
   }
 }
+
+/* ===== Teleportation Animations ===== */
+.square-teleport-hover:hover::before {
+  content: '';
+  position: absolute;
+  width: 90%;
+  height: 90%;
+  border: 3px dashed rgba(168, 85, 247, 0.9);
+  border-radius: 50%;
+  animation: teleport-spin 3s linear infinite, teleport-glow 1s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+@keyframes teleport-spin { 100% { transform: rotate(360deg); } }
+@keyframes teleport-spin-reverse { 100% { transform: rotate(-360deg); } }
+@keyframes teleport-glow { 
+  0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.5); }
+  50% { box-shadow: 0 0 20px rgba(168,85,247,0.9); }
+}
+
+.magic-circle-out, .magic-circle-in {
+  position: absolute;
+  width: 12.5%;
+  height: 12.5%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.magic-circle-out::before, .magic-circle-in::before {
+  content: '';
+  position: absolute;
+  width: 90%;
+  height: 90%;
+  border: 4px dashed rgba(168, 85, 247, 0.9);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.magic-circle-out::before {
+  animation: teleport-spin 1s linear infinite, teleport-fade-out 0.5s ease-out forwards;
+}
+
+.magic-circle-in::before {
+  animation: teleport-spin-reverse 1s linear infinite, teleport-fade-in-out 0.5s ease-out forwards;
+}
+
+@keyframes teleport-fade-out { 
+  0% { opacity: 1; transform: scale(1); } 
+  100% { opacity: 0; transform: scale(1.5); } 
+}
+@keyframes teleport-fade-in-out { 
+  0% { opacity: 0; transform: scale(0.5); } 
+  50% { opacity: 1; transform: scale(1.2); } 
+  100% { opacity: 0; transform: scale(1.5); } 
+}
+
+.teleport-spirit {
+  position: absolute;
+  width: 12.5%;
+  height: 12.5%;
+  background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(200,200,255,0.8) 40%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+  z-index: 20;
+  animation: spirit-dash 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes spirit-dash {
+  0% { left: var(--startX); top: var(--startY); transform: scale(1); opacity: 1; }
+  100% { left: var(--endX); top: var(--endY); transform: scale(1); opacity: 0.2; }
+}
+
+.piece-hidden {
+  opacity: 0 !important;
+  visibility: hidden;
+}

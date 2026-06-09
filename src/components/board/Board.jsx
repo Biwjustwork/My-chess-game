@@ -30,6 +30,8 @@ const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 export default function Board({ G, moves, reset }) {
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
+  const [teleportAnim, setTeleportAnim] = useState(null);
+  const [lastTurnCount, setLastTurnCount] = useState(G.turnCount);
 
   const chess = new Chess(G.fen);
   const board = chess.board();
@@ -45,6 +47,35 @@ export default function Board({ G, moves, reset }) {
     setSelectedSquare(null);
     setValidMoves([]);
   }, [G.rulesEngine?.teleportMode]);
+
+  // Teleport animation effect
+  useEffect(() => {
+    if (G.turnCount !== lastTurnCount) {
+      setLastTurnCount(G.turnCount);
+      if (G.lastMove && G.lastMove.flags === 'teleport') {
+        setTeleportAnim({
+          from: G.lastMove.from,
+          to: G.lastMove.to,
+          phase: 'spirit'
+        });
+
+        setTimeout(() => {
+          setTeleportAnim(prev => prev ? { ...prev, phase: 'magic-circle-in' } : null);
+        }, 500);
+
+        setTimeout(() => {
+          setTeleportAnim(null);
+        }, 1000);
+      }
+    }
+  }, [G.turnCount, lastTurnCount, G.lastMove]);
+
+  const getPos = (sq) => {
+    if (!sq) return { left: '0%', top: '0%' };
+    const col = sq.charCodeAt(0) - 97;
+    const row = 8 - parseInt(sq[1], 10);
+    return { left: `${col * 12.5}%`, top: `${row * 12.5}%` };
+  };
 
   const handleSquareClick = useCallback((square) => {
     const clickChess = new Chess(G.fen);
@@ -193,11 +224,36 @@ export default function Board({ G, moves, reset }) {
                     isExhausted={isSquareExhausted(square)}
                     isBetrayed={G.rulesEngine?.betrayedPiece?.square === square}
                     isCurrentPlayerPiece={piece && piece.color === currentColor}
+                    isTeleportMode={G.rulesEngine?.teleportMode}
+                    isTeleportAnimTarget={teleportAnim && teleportAnim.to === square}
                     onSquareClick={handleSquareClick}
                     onDrop={handleDrop}
                   />
                 );
               })
+            )}
+
+            {/* Teleportation Animation Overlay */}
+            {teleportAnim && (
+              <>
+                {teleportAnim.phase === 'spirit' && (
+                  <div className="magic-circle-out" style={getPos(teleportAnim.from)}></div>
+                )}
+                {teleportAnim.phase === 'spirit' && (
+                  <div 
+                    className="teleport-spirit"
+                    style={{
+                      '--startX': getPos(teleportAnim.from).left,
+                      '--startY': getPos(teleportAnim.from).top,
+                      '--endX': getPos(teleportAnim.to).left,
+                      '--endY': getPos(teleportAnim.to).top,
+                    }}
+                  ></div>
+                )}
+                {teleportAnim.phase === 'magic-circle-in' && (
+                  <div className="magic-circle-in" style={getPos(teleportAnim.to)}></div>
+                )}
+              </>
             )}
           </div>
           {/* File labels */}

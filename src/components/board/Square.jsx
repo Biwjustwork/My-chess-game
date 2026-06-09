@@ -17,6 +17,8 @@ export default function Square({
   isExhausted,
   isBetrayed,
   isCurrentPlayerPiece,
+  isTeleportMode,
+  isTeleportAnimTarget,
   onSquareClick,
   onDrop,
 }) {
@@ -45,6 +47,7 @@ export default function Square({
   if (isFrozen) className += ' square-frozen';
   if (isExhausted) className += ' square-exhausted';
   if (isBetrayed) className += ' square-betrayed';
+  if (isTeleportMode && isCurrentPlayerPiece) className += ' square-teleport-hover';
 
   return (
     <div
@@ -56,7 +59,7 @@ export default function Square({
         outlineOffset: '-3px',
       }}
     >
-      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece && !isFrozen && !isExhausted} isSelected={isSelected} />}
+      {piece && <Piece piece={piece} square={square} isCurrentPlayerPiece={isCurrentPlayerPiece && !isFrozen && !isExhausted} isSelected={isSelected} hidden={isTeleportAnimTarget} />}
       {isValidMove && !piece && <div className="valid-move-dot" />}
       {hasCapture && <div className="valid-capture-ring" />}
       {isFrozen && <div className="frozen-overlay">❄️</div>}

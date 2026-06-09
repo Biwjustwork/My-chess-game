@@ -27,7 +27,7 @@ const PIECE_NAMES = {
 /**
  * Chess piece component with drag support — renders piece images
  */
-export default function Piece({ piece, square, isCurrentPlayerPiece, isSelected }) {
+export default function Piece({ piece, square, isCurrentPlayerPiece, isSelected, hidden }) {
   const [{ isDragging }, dragRef] = useDrag(
     () => ({
       type: 'PIECE',
@@ -54,7 +54,7 @@ export default function Piece({ piece, square, isCurrentPlayerPiece, isSelected 
   return (
     <div
       ref={dragRef}
-      className={`piece ${isDragging ? 'piece-dragging' : ''} ${activeClass}`}
+      className={`piece ${isDragging ? 'piece-dragging' : ''} ${activeClass} ${hidden ? 'piece-hidden' : ''}`}
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
       <img

@@ -111,7 +111,7 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
 
   G.fen = chess.fen();
   G.board = chess.board();
-  G.lastMove = { from, to, captured: undefined };
+  G.lastMove = { from, to, captured: undefined, flags: 'teleport' };
   G.selectedSquare = null;
   G.validMoves = [];
   G.moveHistory.push({ from, to, piece: piece.type, color: piece.color, flags: 'teleport' });
