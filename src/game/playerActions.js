@@ -234,7 +234,7 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
 
     G.fen = chess.fen();
     G.board = chess.board();
-    G.lastMove = { from: moveResult.from, to: moveResult.to };
+    G.lastMove = { from: moveResult.from, to: moveResult.to, captured: moveResult.captured, capturedColor: moveResult.captured ? (moveResult.color === 'w' ? 'b' : 'w') : null };
     G.selectedSquare = moveResult.to;
     G.validMoves = getAllValidMoves({ ...G, fen: chess.fen() }, moveResult.to);
     G.moveHistory.push(moveResult);
@@ -243,7 +243,7 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
 
   G.fen = chess.fen();
   G.board = chess.board();
-  G.lastMove = { from: moveResult.from, to: moveResult.to };
+  G.lastMove = { from: moveResult.from, to: moveResult.to, captured: moveResult.captured, capturedColor: moveResult.captured ? (moveResult.color === 'w' ? 'b' : 'w') : null };
   G.selectedSquare = null;
   G.validMoves = [];
   G.moveHistory.push(moveResult);
@@ -311,7 +311,7 @@ export const completeSecondMove = ({ G, ctx, events }, from, to) => {
 
   G.fen = chess.fen();
   G.board = chess.board();
-  G.lastMove = { from: moveResult.from, to: moveResult.to };
+  G.lastMove = { from: moveResult.from, to: moveResult.to, captured: moveResult.captured, capturedColor: moveResult.captured ? (moveResult.color === 'w' ? 'b' : 'w') : null };
   G.selectedSquare = null;
   G.validMoves = [];
   G.moveHistory.push(moveResult);
@@ -414,7 +414,7 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
 
   G.fen = chess.fen();
   G.board = chess.board();
-  G.lastMove = { from, to };
+  G.lastMove = { from, to, captured: undefined };
   G.selectedSquare = null;
   G.validMoves = [];
   G.moveHistory.push({ from, to, piece: piece.type, color: piece.color, flags: 'teleport' });

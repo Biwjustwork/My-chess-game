@@ -154,6 +154,7 @@ export default function Board({ G, moves, reset }) {
 
   const isSquareValidMove = (sq) => validMoves.some((m) => m.to === sq);
   const isSquareLastMove = (sq) => G.lastMove && (sq === G.lastMove.from || sq === G.lastMove.to);
+  const isSquareCapture = (sq) => G.lastMove && sq === G.lastMove.to && G.lastMove.captured ? G.lastMove.capturedColor : false;
   const isSquareExplosion = (sq) => G.explosionSquares && G.explosionSquares.includes(sq);
 
   const isSquareFrozen = (sq) => {
@@ -186,6 +187,7 @@ export default function Board({ G, moves, reset }) {
                     isSelected={selectedSquare === square}
                     isValidMove={isSquareValidMove(square)}
                     isLastMove={isSquareLastMove(square)}
+                    isCapture={isSquareCapture(square)}
                     isExplosion={isSquareExplosion(square)}
                     isFrozen={isSquareFrozen(square)}
                     isExhausted={isSquareExhausted(square)}

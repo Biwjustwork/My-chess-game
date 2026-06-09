@@ -11,6 +11,7 @@ export default function Square({
   isSelected,
   isValidMove,
   isLastMove,
+  isCapture,
   isExplosion,
   isFrozen,
   isExhausted,
@@ -61,6 +62,7 @@ export default function Square({
       {isFrozen && <div className="frozen-overlay">❄️</div>}
       {isExhausted && <div className="exhausted-overlay">💤</div>}
       {isBetrayed && <div className="betrayal-overlay">🎭</div>}
+      {isCapture && <div className={`capture-effect capture-${isCapture}`}></div>}
     </div>
   );
 }
