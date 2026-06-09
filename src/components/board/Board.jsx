@@ -6,14 +6,14 @@ import Square from './Square';
 import { getAllValidMoves } from '../../game/ChaosChessEngine';
 import { isValidTeleportation } from '../../game/rulesEngine';
 
-import WQueen from '../../assets/pieces/w-queen.png';
-import WRook from '../../assets/pieces/w-rook.png';
-import WBishop from '../../assets/pieces/w-bishop.png';
-import WKnight from '../../assets/pieces/w-knight.png';
-import BQueen from '../../assets/pieces/b-queen.png';
-import BRook from '../../assets/pieces/b-rook.png';
-import BBishop from '../../assets/pieces/b-bishop.png';
-import BKnight from '../../assets/pieces/b-knight.png';
+import WQueen from '../../assets/Img-chibi-pieces/w-queen.png';
+import WRook from '../../assets/Img-chibi-pieces/w-rook.png';
+import WBishop from '../../assets/Img-chibi-pieces/w-bishop.png';
+import WKnight from '../../assets/Img-chibi-pieces/w-knight.png';
+import BQueen from '../../assets/Img-chibi-pieces/b-queen.png';
+import BRook from '../../assets/Img-chibi-pieces/b-rook.png';
+import BBishop from '../../assets/Img-chibi-pieces/b-bishop.png';
+import BKnight from '../../assets/Img-chibi-pieces/b-knight.png';
 import './Board.css';
 
 const PROMOTION_IMAGES = {
@@ -257,7 +257,7 @@ export default function Board({ G, moves, reset }) {
                 <img
                   src={PROMOTION_IMAGES[`${currentColor}${p}`]}
                   alt={p}
-                  style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   draggable={false}
                 />
               </div>
