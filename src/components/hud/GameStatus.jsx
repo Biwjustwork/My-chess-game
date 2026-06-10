@@ -1,3 +1,4 @@
+import './HUD.css';
 /**
  * GameStatus - Shows game state, captured pieces, move history, and new game button
  */

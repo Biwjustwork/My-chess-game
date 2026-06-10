@@ -14,6 +14,7 @@ export function setupGame() {
     currentPlayer: 'w',
     rulesEngine: initRulesEngine(),
     gameStatus: 'playing', // 'playing' | 'check' | 'checkmate' | 'draw' | 'stalemate'
+    chaosEscapeAvailable: false,
     lastMove: null,
     capturedPieces: { w: [], b: [] },
     moveHistory: [],

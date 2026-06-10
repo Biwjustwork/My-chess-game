@@ -1,18 +1,18 @@
 import { useDrag } from 'react-dnd';
 
 // Import chess piece images
-import WKing from '../../assets/pieces/w-king.png';
-import WQueen from '../../assets/pieces/w-queen.png';
-import WRook from '../../assets/pieces/w-rook.png';
-import WBishop from '../../assets/pieces/w-bishop.png';
-import WKnight from '../../assets/pieces/w-knight.png';
-import WPawn from '../../assets/pieces/w-pawn.png';
-import BKing from '../../assets/pieces/b-king.png';
-import BQueen from '../../assets/pieces/b-queen.png';
-import BRook from '../../assets/pieces/b-rook.png';
-import BBishop from '../../assets/pieces/b-bishop.png';
-import BKnight from '../../assets/pieces/b-knight.png';
-import BPawn from '../../assets/pieces/b-pawn.png';
+import WKing from '../../assets/Img-chibi-pieces/w-king.png';
+import WQueen from '../../assets/Img-chibi-pieces/w-queen.png';
+import WRook from '../../assets/Img-chibi-pieces/w-rook.png';
+import WBishop from '../../assets/Img-chibi-pieces/w-bishop.png';
+import WKnight from '../../assets/Img-chibi-pieces/w-knight.png';
+import WPawn from '../../assets/Img-chibi-pieces/w-pawn.png';
+import BKing from '../../assets/Img-chibi-pieces/bking.png';
+import BQueen from '../../assets/Img-chibi-pieces/b-queen.png';
+import BRook from '../../assets/Img-chibi-pieces/b-rook.png';
+import BBishop from '../../assets/Img-chibi-pieces/b-bishop.png';
+import BKnight from '../../assets/Img-chibi-pieces/b-knight.png';
+import BPawn from '../../assets/Img-chibi-pieces/b-pawn.png';
 
 const PIECE_IMAGES = {
   wk: WKing, wq: WQueen, wr: WRook, wb: WBishop, wn: WKnight, wp: WPawn,
@@ -27,7 +27,7 @@ const PIECE_NAMES = {
 /**
  * Chess piece component with drag support — renders piece images
  */
-export default function Piece({ piece, square, isCurrentPlayerPiece }) {
+export default function Piece({ piece, square, isCurrentPlayerPiece, isSelected, hidden }) {
   const [{ isDragging }, dragRef] = useDrag(
     () => ({
       type: 'PIECE',
@@ -47,14 +47,14 @@ export default function Piece({ piece, square, isCurrentPlayerPiece }) {
 
   if (!imageSrc) return null;
 
-  const activeClass = isCurrentPlayerPiece 
+  const activeClass = isSelected 
     ? (piece.color === 'w' ? 'piece-active-w' : 'piece-active-b') 
     : '';
 
   return (
     <div
       ref={dragRef}
-      className={`piece ${isDragging ? 'piece-dragging' : ''} ${activeClass}`}
+      className={`piece ${isDragging ? 'piece-dragging' : ''} ${activeClass} ${hidden ? 'piece-hidden' : ''}`}
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
       <img

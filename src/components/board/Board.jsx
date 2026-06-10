@@ -1,18 +1,20 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Chess } from 'chess.js';
 import Square from './Square';
 import { getAllValidMoves } from '../../game/ChaosChessEngine';
+import { isValidTeleportation } from '../../game/rulesEngine';
 
-import WQueen from '../../assets/pieces/w-queen.png';
-import WRook from '../../assets/pieces/w-rook.png';
-import WBishop from '../../assets/pieces/w-bishop.png';
-import WKnight from '../../assets/pieces/w-knight.png';
-import BQueen from '../../assets/pieces/b-queen.png';
-import BRook from '../../assets/pieces/b-rook.png';
-import BBishop from '../../assets/pieces/b-bishop.png';
-import BKnight from '../../assets/pieces/b-knight.png';
+import WQueen from '../../assets/Img-chibi-pieces/w-queen.png';
+import WRook from '../../assets/Img-chibi-pieces/w-rook.png';
+import WBishop from '../../assets/Img-chibi-pieces/w-bishop.png';
+import WKnight from '../../assets/Img-chibi-pieces/w-knight.png';
+import BQueen from '../../assets/Img-chibi-pieces/b-queen.png';
+import BRook from '../../assets/Img-chibi-pieces/b-rook.png';
+import BBishop from '../../assets/Img-chibi-pieces/b-bishop.png';
+import BKnight from '../../assets/Img-chibi-pieces/b-knight.png';
+import './Board.css';
 
 const PROMOTION_IMAGES = {
   wq: WQueen, wr: WRook, wb: WBishop, wn: WKnight,
@@ -28,6 +30,8 @@ const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 export default function Board({ G, moves, reset }) {
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [validMoves, setValidMoves] = useState([]);
+  const [teleportAnim, setTeleportAnim] = useState(null);
+  const [lastTurnCount, setLastTurnCount] = useState(G.turnCount);
 
   const chess = new Chess(G.fen);
   const board = chess.board();
@@ -38,31 +42,53 @@ export default function Board({ G, moves, reset }) {
     return getAllValidMoves(G, square);
   }, [G]);
 
+  // Clear local selection when teleport mode toggles so UI updates correctly
+  useEffect(() => {
+    setSelectedSquare(null);
+    setValidMoves([]);
+  }, [G.rulesEngine?.teleportMode]);
+
+  // Teleport animation effect
+  useEffect(() => {
+    if (G.turnCount !== lastTurnCount) {
+      setLastTurnCount(G.turnCount);
+      if (G.lastMove && G.lastMove.flags === 'teleport') {
+        setTeleportAnim({
+          from: G.lastMove.from,
+          to: G.lastMove.to,
+          phase: 'spirit'
+        });
+
+        setTimeout(() => {
+          setTeleportAnim(prev => prev ? { ...prev, phase: 'magic-circle-in' } : null);
+        }, 500);
+
+        setTimeout(() => {
+          setTeleportAnim(null);
+        }, 1000);
+      }
+    }
+  }, [G.turnCount, lastTurnCount, G.lastMove]);
+
+  const getPos = (sq) => {
+    if (!sq) return { left: '0%', top: '0%' };
+    const col = sq.charCodeAt(0) - 97;
+    const row = 8 - parseInt(sq[1], 10);
+    return { left: `${col * 12.5}%`, top: `${row * 12.5}%` };
+  };
+
   const handleSquareClick = useCallback((square) => {
     const clickChess = new Chess(G.fen);
     const piece = clickChess.get(square);
 
     // Teleport mode
     if (G.rulesEngine?.teleportMode) {
-      if (selectedSquare && !piece) {
-        moves.teleportPiece(selectedSquare, square);
+      if (piece && piece.color === currentColor) {
+        moves.teleportPiece(square, 'random');
         setSelectedSquare(null);
         setValidMoves([]);
-        return;
       }
-      if (piece && piece.color === currentColor) {
-        setSelectedSquare(square);
-        // In teleport mode, all empty squares are valid
-        const emptySquares = [];
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const sq = String.fromCharCode(97 + c) + (8 - r);
-            if (!clickChess.get(sq)) emptySquares.push({ from: square, to: sq });
-          }
-        }
-        setValidMoves(emptySquares);
-        return;
-      }
+      return;
     }
 
     // Knight's Frenzy second move
@@ -135,7 +161,7 @@ export default function Board({ G, moves, reset }) {
     }
 
     if (G.rulesEngine?.teleportMode) {
-      moves.teleportPiece(fromSquare, toSquare);
+      moves.teleportPiece(fromSquare, 'random');
     } else if (G.rulesEngine?.pendingSecondMove) {
       moves.completeSecondMove(fromSquare, toSquare);
     } else {
@@ -159,7 +185,21 @@ export default function Board({ G, moves, reset }) {
 
   const isSquareValidMove = (sq) => validMoves.some((m) => m.to === sq);
   const isSquareLastMove = (sq) => G.lastMove && (sq === G.lastMove.from || sq === G.lastMove.to);
+  const isSquareCapture = (sq) => G.lastMove && sq === G.lastMove.to && G.lastMove.captured ? G.lastMove.capturedColor : false;
   const isSquareExplosion = (sq) => G.explosionSquares && G.explosionSquares.includes(sq);
+
+  const isSquareFrozen = (sq) => {
+    const frozen = G.rulesEngine?.frozenPieces;
+    if (!frozen) return false;
+    return (frozen.w?.square === sq) || (frozen.b?.square === sq);
+  };
+
+  const isSquareExhausted = (sq) => {
+    const exhausted = G.rulesEngine?.exhaustedPieces;
+    if (!exhausted) return false;
+    return (exhausted.w || []).some(p => p.square === sq) || 
+           (exhausted.b || []).some(p => p.square === sq);
+  };
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -178,13 +218,42 @@ export default function Board({ G, moves, reset }) {
                     isSelected={selectedSquare === square}
                     isValidMove={isSquareValidMove(square)}
                     isLastMove={isSquareLastMove(square)}
+                    isCapture={isSquareCapture(square)}
                     isExplosion={isSquareExplosion(square)}
+                    isFrozen={isSquareFrozen(square)}
+                    isExhausted={isSquareExhausted(square)}
+                    isBetrayed={G.rulesEngine?.betrayedPiece?.square === square}
                     isCurrentPlayerPiece={piece && piece.color === currentColor}
+                    isTeleportMode={G.rulesEngine?.teleportMode}
+                    isTeleportAnimTarget={teleportAnim && teleportAnim.to === square}
                     onSquareClick={handleSquareClick}
                     onDrop={handleDrop}
                   />
                 );
               })
+            )}
+
+            {/* Teleportation Animation Overlay */}
+            {teleportAnim && (
+              <>
+                {teleportAnim.phase === 'spirit' && (
+                  <div className="magic-circle-out" style={getPos(teleportAnim.from)}></div>
+                )}
+                {teleportAnim.phase === 'spirit' && (
+                  <div 
+                    className="teleport-spirit"
+                    style={{
+                      '--startX': getPos(teleportAnim.from).left,
+                      '--startY': getPos(teleportAnim.from).top,
+                      '--endX': getPos(teleportAnim.to).left,
+                      '--endY': getPos(teleportAnim.to).top,
+                    }}
+                  ></div>
+                )}
+                {teleportAnim.phase === 'magic-circle-in' && (
+                  <div className="magic-circle-in" style={getPos(teleportAnim.to)}></div>
+                )}
+              </>
             )}
           </div>
           {/* File labels */}
@@ -224,6 +293,13 @@ export default function Board({ G, moves, reset }) {
             🐴 Knight's Frenzy — Move your Knight again!
           </div>
         )}
+
+        {/* Chaos Escape Hint */}
+        {G.gameStatus === 'check' && G.chaosEscapeAvailable && (
+          <div className="chaos-escape-hint">
+            <strong>CHECK!</strong> คุณยังมีทางรอดด้วยกฎพิเศษอยู่นะ!
+          </div>
+        )}
       </div>
 
       {/* Promotion Dialog */}
@@ -239,7 +315,7 @@ export default function Board({ G, moves, reset }) {
                 <img
                   src={PROMOTION_IMAGES[`${currentColor}${p}`]}
                   alt={p}
-                  style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   draggable={false}
                 />
               </div>
