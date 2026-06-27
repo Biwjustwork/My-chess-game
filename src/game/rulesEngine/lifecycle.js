@@ -13,11 +13,8 @@ export function validateMoveWithRules(move, rulesState, chess) {
   const modifiers = rulesState.activeModifiers || {};
 
   // Shield Wall: Pawns can't be captured
-  if (modifiers.shieldWall && move.captured) {
-    const targetPiece = chess.get(move.to);
-    if (targetPiece && targetPiece.type === 'p') {
-      return { valid: false, reason: 'Shield Wall is active! Pawns cannot be captured.' };
-    }
+  if (modifiers.shieldWall && move.captured === 'p') {
+    return { valid: false, reason: 'Shield Wall is active! Pawns cannot be captured.' };
   }
 
   // Freeze: Frozen pieces cannot move
@@ -44,6 +41,31 @@ export function validateMoveWithRules(move, rulesState, chess) {
       tempChess.remove(move.from);
       if (move.captured) tempChess.remove(move.to);
       if (move.to) tempChess.put(pieceObj, move.to);
+
+      // Simulate explosion if explosiveCaptures is active and not used yet for this color
+      if (modifiers.explosiveCaptures && move.captured && (!rulesState.explosiveUsed || !rulesState.explosiveUsed[move.color])) {
+        const file = move.to.charCodeAt(0);
+        const rank = parseInt(move.to[1]);
+        // Remove adjacent pieces except Kings
+        for (let f = file - 1; f <= file + 1; f++) {
+          for (let r = rank - 1; r <= rank + 1; r++) {
+            if (f >= 97 && f <= 104 && r >= 1 && r <= 8) {
+              const sq = String.fromCharCode(f) + r;
+              if (sq !== move.to) {
+                const adjPiece = tempChess.get(sq);
+                if (adjPiece && adjPiece.type !== 'k') {
+                  tempChess.remove(sq);
+                }
+              }
+            }
+          }
+        }
+        // Kamikaze (destroy capturing piece)
+        if (pieceObj.type !== 'k') {
+          tempChess.remove(move.to);
+        }
+      }
+
       if (tempChess.isCheck()) {
         return { valid: false, reason: 'Cannot move into check.' };
       }
@@ -127,9 +149,38 @@ export function applyPostMoveEffects(move, rulesState, chess) {
     }
   }
 
-  // Knight's Frenzy: allow second move
-  if (modifiers.knightsFrenzy && move.piece === 'n' && !rulesState.pendingSecondMove) {
-    rulesState.pendingSecondMove = { piece: 'n', square: move.to, playerId: move.color };
+  // Knight's Frenzy: allow second move (only if Knight survived explosion and move wasn't a teleportation)
+  if (modifiers.knightsFrenzy && move.piece === 'n' && move.flags !== 'teleport' && !rulesState.pendingSecondMove) {
+    const knightPiece = chess.get(move.to);
+    if (knightPiece && knightPiece.type === 'n') {
+      rulesState.pendingSecondMove = { piece: 'n', square: move.to, playerId: move.color };
+    }
+  }
+
+  // Update frozen pieces if captured, exploded, or kamikazed
+  if (rulesState.frozenPieces) {
+    if (move.captured) {
+      if (rulesState.frozenPieces.w && rulesState.frozenPieces.w.square === move.to) {
+        rulesState.frozenPieces.w = null;
+      }
+      if (rulesState.frozenPieces.b && rulesState.frozenPieces.b.square === move.to) {
+        rulesState.frozenPieces.b = null;
+      }
+    }
+    if (rulesState.explodedThisTurn) {
+      const rule = getRuleById('explosive_captures');
+      if (rule) {
+        const affectedSquares = rule.getExplosionSquares(move.to);
+        for (const sq of [...affectedSquares, move.to]) {
+          if (rulesState.frozenPieces.w && rulesState.frozenPieces.w.square === sq) {
+            rulesState.frozenPieces.w = null;
+          }
+          if (rulesState.frozenPieces.b && rulesState.frozenPieces.b.square === sq) {
+            rulesState.frozenPieces.b = null;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -142,6 +193,14 @@ export function isValidTeleportation(from, to, chess, currentPlayer) {
   if (piece.color !== currentPlayer) return false;
   const target = chess.get(to);
   if (target) return false;
+
+  // Prevent pawn on edge rows
+  if (piece.type === 'p') {
+    const rank = to[1];
+    if (rank === '1' || rank === '8') {
+      return false;
+    }
+  }
 
   // Permanent rule: Teleportation cannot leave the King in check
   try {

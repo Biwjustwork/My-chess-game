@@ -23,14 +23,14 @@ export const movementRules = [
       const extraMoves = [];
 
       // Backward for white is decreasing rank, for black is increasing rank
-      if (piece.color === 'w' && rank > 1) {
+      if (piece.color === 'w' && rank > 2) {
         const targetSquare = String.fromCharCode(file) + (rank - 1);
         // Check if square is empty
         const targetPiece = board.get(targetSquare);
         if (!targetPiece) {
           extraMoves.push({ from: square, to: targetSquare, isExtra: true, shouldEndTurn: true });
         }
-      } else if (piece.color === 'b' && rank < 8) {
+      } else if (piece.color === 'b' && rank < 7) {
         const targetSquare = String.fromCharCode(file) + (rank + 1);
         const targetPiece = board.get(targetSquare);
         if (!targetPiece) {

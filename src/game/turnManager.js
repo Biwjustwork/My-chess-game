@@ -26,7 +26,7 @@ export const finalizeTurn = (G, events, currentColor) => {
   if (G.gameStatus === 'checkmate' || G.gameStatus === 'draw' || G.gameStatus === 'stalemate') {
     let winner = undefined;
     if (G.gameStatus === 'checkmate') {
-      winner = (currentColor === 'w') ? '0' : '1';
+      winner = (G.currentPlayer === 'w') ? '1' : '0';
     }
     events.endGame({ winner });
   } else {

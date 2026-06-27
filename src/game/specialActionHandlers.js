@@ -51,11 +51,25 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
 
   const chess = new Chess(G.fen);
   const currentColor = G.currentPlayer;
+  const piece = chess.get(from);
+  if (!piece) return;
+
+  // Block teleport if frozen
+  if (G.rulesEngine.frozenPieces) {
+    const frozen = G.rulesEngine.frozenPieces[currentColor];
+    if (frozen && frozen.square === from) {
+      return;
+    }
+  }
 
   if (to === 'random') {
     const validSquares = [];
     for (let r = 1; r <= 8; r++) {
       for (let c = 0; c < 8; c++) {
+        // Prevent pawn on edge rows
+        if (piece.type === 'p' && (r === 1 || r === 8)) {
+          continue;
+        }
         const sq = String.fromCharCode(97 + c) + r;
         if (sq !== from) {
           const targetPiece = chess.get(sq);
@@ -85,12 +99,11 @@ export const teleportPiece = ({ G, ctx, events }, from, to) => {
     chess.remove(to);
   }
 
-  const piece = chess.get(from);
   chess.remove(from);
   chess.put(piece, to);
 
   if (targetPiece) {
-    applyPostMoveEffects({ from, to, piece: piece.type, color: piece.color, captured: targetPiece.type, flags: 'x' }, G.rulesEngine, chess);
+    applyPostMoveEffects({ from, to, piece: piece.type, color: piece.color, captured: targetPiece.type, flags: 'teleport' }, G.rulesEngine, chess);
     if (G.rulesEngine.explodedThisTurn) {
       G.explosionSquares = getExplosionSquares(to);
     }

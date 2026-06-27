@@ -93,8 +93,14 @@ export const makeMove = ({ G, ctx, events }, from, to, promotion) => {
       }
     }
 
+    let captured = chess.get(to)?.type;
+    if (!captured && piece.type === 'p' && from[0] !== to[0]) {
+      // En Passant capture
+      captured = 'p';
+    }
+
     const validation = validateMoveWithRules(
-      { from, to, piece: piece.type, captured: chess.get(to)?.type, color: piece.color },
+      { from, to, piece: piece.type, captured, color: piece.color },
       G.rulesEngine,
       chess
     );
